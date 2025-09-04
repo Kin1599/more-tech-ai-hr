@@ -4,6 +4,7 @@ import Layout from '../Shared/Layout';
 import HomePage from '../Pages/HomePage';
 import AboutPage from '../Pages/AboutPage';
 import LoginPage from '../Pages/LoginPage';
+import VacancyPage from '../Pages/VacancyPage';
 import NotFoundPage from '../Pages/NotFoundPage';
 
 import {Navigate} from 'react-router-dom';
@@ -37,6 +38,14 @@ const Routing = () => {
             element={
               <ProtectedRoute>
                 <AboutPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path='/vacancy/:id'
+            element={
+              <ProtectedRoute>
+                <VacancyPage />
               </ProtectedRoute>
             }
           />

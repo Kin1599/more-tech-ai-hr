@@ -11,7 +11,8 @@ import {
   PaginationPrevious,
 } from '../../components/ui/pagination';
 import {useStore} from '../../App/Store';
-import {useSearch} from '../../Shared/SearchContext';
+import Dropdown from './components/Dropdown';
+import plusIcon from '../../Shared/imgs/plus.svg';
 
 const namesArr = [
   {name: 'Должность', width: '250px'},
@@ -23,28 +24,39 @@ const namesArr = [
 
 const HomePage = () => {
   const {vacancies} = useStore();
-  const {searchQuery} = useSearch();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  // Фильтруем вакансии по поисковому запросу
-  const filteredVacancies =
-    searchQuery.trim() === ''
-      ? vacancies
-      : vacancies.filter((vacancy) => {
-          if (!vacancy || !vacancy.name) {
-            console.warn('Invalid vacancy data:', vacancy);
-            return false;
-          }
-          return vacancy.name.toLowerCase().includes(searchQuery.toLowerCase());
-        });
+  // Фильтруем вакансии по поисковому запросу и статусу
+  const filteredVacancies = vacancies.filter((vacancy) => {
+    if (!vacancy || !vacancy.name) {
+      console.warn('Invalid vacancy data:', vacancy);
+      return false;
+    }
+
+    // Фильтр по поисковому запросу
+    const matchesSearch = searchQuery.trim() === '' || vacancy.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Фильтр по статусу
+    let matchesStatus = true;
+    if (statusFilter === 'active') {
+      matchesStatus = vacancy.status === 'active';
+    } else if (statusFilter === 'closed') {
+      matchesStatus = ['hold', 'found', 'approve'].includes(vacancy.status);
+    }
+    // Если statusFilter === 'all', то matchesStatus остается true
+
+    return matchesSearch && matchesStatus;
+  });
 
   const totalPages = Math.max(1, Math.ceil(filteredVacancies.length / itemsPerPage));
 
-  // Сбрасываем страницу при изменении данных или поискового запроса
+  // Сбрасываем страницу при изменении данных, поискового запроса или фильтра статуса
   useEffect(() => {
     setCurrentPage(1);
-  }, [filteredVacancies.length, searchQuery]);
+  }, [filteredVacancies.length, searchQuery, statusFilter]);
 
   // Проверяем, что текущая страница не превышает общее количество страниц
   useEffect(() => {
@@ -64,18 +76,22 @@ const HomePage = () => {
           .map((vacancy) => {
             if (!vacancy) {
               console.warn('Empty vacancy in currentVacancies');
-              return [];
+              return null;
             }
 
-            return [
+            const row = [
               {name: vacancy.name || 'Н/Д', width: '250px'},
               {name: vacancy.department || 'Н/Д', width: '400px'},
               {name: (vacancy.responses || 0).toString(), width: '210px'},
               {name: (vacancy.responsesWithout || 0).toString(), width: '210px'},
               {name: getStatusText(vacancy.status), width: '130px'},
             ];
+
+            // Добавляем vacancyId к строке
+            row.vacancyId = vacancy.vacancyId;
+            return row;
           })
-          .filter((row) => row.length > 0)
+          .filter((row) => row !== null)
       : []; // Убираем пустые строки
 
   // Функция для отображения статуса
@@ -131,20 +147,34 @@ const HomePage = () => {
   };
 
   return (
-    <div className='flex flex-col gap-[20px]'>
-      {filteredVacancies.length === 0 && searchQuery.trim() !== '' ? (
-        <div className='text-center py-8 text-gray-500'>По запросу "{searchQuery}" ничего не найдено</div>
+    <div className='flex flex-col gap-[10px]'>
+      <div className='flex justify-between items-center mb-10'>
+        <div className='text-[30px] font-semibold'>Вакансии</div>
+        <Input
+          className='bg-white w-[500px] h-[40px] rounded-[10px] p-[10px]'
+          placeholder='Поиск по должности'
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <Button className='flex gap-[10px] p-[16px] pb-[10px] pt-[10px] w-[209px] h-[40px] cursor-pointer'>
+          <img src={plusIcon} alt='Создать вакансию' />
+          Создать вакансию
+        </Button>
+        <Dropdown selectedFilter={statusFilter} onFilterChange={setStatusFilter} />
+      </div>
+      {filteredVacancies.length === 0 ? (
+        <div className='text-center py-8 text-gray-500'>
+          {searchQuery.trim() !== '' || statusFilter !== 'all'
+            ? 'По заданным критериям ничего не найдено'
+            : 'Вакансии не найдены'}
+        </div>
       ) : (
         <CustomTable
-          key={`${currentPage}-${searchQuery}-${filteredVacancies.length}`}
+          key={`${currentPage}-${searchQuery}-${statusFilter}-${filteredVacancies.length}`}
           data={tableData}
           namesArr={namesArr}
         />
       )}
-      <Button className='flex gap-[10px] p-[16px] pb-[10px] pt-[10px] w-[209px] h-[40px] cursor-pointer mx-auto'>
-        <img src='/src/shared/imgs/plus.svg'></img>
-        Создать вакансию
-      </Button>
 
       <Pagination>
         <PaginationContent>
