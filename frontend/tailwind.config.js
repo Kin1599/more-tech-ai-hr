@@ -4,10 +4,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        custom: ['YourCustomFont', 'sans-serif'],
-        sans: ['YourCustomFont', 'system-ui', 'sans-serif'],
-        heading: ['YourCustomFont', 'serif'],
-        body: ['YourCustomFont', 'sans-serif'],
+        sans: ['Geologica', 'system-ui', 'sans-serif'],
+        heading: ['Geologica', 'serif'],
+        body: ['Geologica', 'sans-serif'],
+        cursive: ['Geologica Cursive', 'cursive'],
+        geologica: ['Geologica', 'sans-serif'],
       },
     },
   },
