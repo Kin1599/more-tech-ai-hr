@@ -1,0 +1,11 @@
+groq>=0.9.0
+langchain>=0.2.0
+langchain-groq>=0.1.0
+tone>=0.1.0
+torch
+torchaudio
+ruaccent
+huggingface_hub
+soundfile
+numpy
+f5-tts
