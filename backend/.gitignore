@@ -34,4 +34,3 @@ htmlcov/
 
 # Static files
 staticfiles/
-migrations/

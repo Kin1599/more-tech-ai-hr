@@ -12,3 +12,7 @@ DB_PORT = os.getenv("DB_PORT")
 # Проверяем, что все переменные окружения загружены
 if not all([DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME]):
     raise ValueError("Не все переменные окружения для подключения к базе данных заданы.")
+
+SECRET_KEY_AUTH=os.getenv("SECRET_KEY_AUTH")
+ALGORITHM=os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES=os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
