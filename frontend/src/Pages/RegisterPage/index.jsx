@@ -6,31 +6,43 @@ import {Label} from '../../components/ui/label';
 import {useStore} from '../../App/Store';
 import logo from '../../Shared/imgs/logo.svg';
 
-const LoginPage = () => {
+const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const {login} = useStore();
+  const {register} = useStore();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('Пароли не совпадают');
+      return;
+    }
+
+    if (password.length < 3) {
+      setError('Пароль должен содержать минимум 3 символа');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = login(email, password);
+      const result = register(email, password);
 
       if (result.success) {
-        // Успешная авторизация - перенаправляем на главную страницу
+        // Успешная регистрация - перенаправляем на главную страницу
         navigate('/');
       } else {
         setError(result.error);
       }
     } catch (err) {
-      setError('Произошла ошибка при входе');
+      setError('Произошла ошибка при регистрации');
     } finally {
       setLoading(false);
     }
@@ -45,7 +57,7 @@ const LoginPage = () => {
         </div>
 
         {/* Заголовок */}
-        <h1 className='text-2xl font-bold text-white text-center mb-8'>Вход в систему</h1>
+        <h1 className='text-2xl font-bold text-white text-center mb-8'>Регистрация</h1>
 
         {/* Сообщение об ошибке */}
         {error && (
@@ -80,30 +92,46 @@ const LoginPage = () => {
               type='password'
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder='Введите ваш пароль'
+              placeholder='Введите пароль'
               className='w-full p-3 rounded-[10px] border-0 bg-[#F5F2EE] text-[#303030] focus:ring-2 focus:ring-white focus:bg-[#F5F2EE] hover:bg-[#F5F2EE]'
               required
             />
           </div>
 
-          {/* Кнопка входа */}
+          {/* Подтверждение пароля */}
+          <div className='space-y-2'>
+            <Label htmlFor='confirmPassword' className='text-white font-medium'>
+              Подтвердите пароль
+            </Label>
+            <Input
+              id='confirmPassword'
+              type='password'
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder='Подтвердите пароль'
+              className='w-full p-3 rounded-[10px] border-0 bg-[#F5F2EE] text-[#303030] focus:ring-2 focus:ring-white focus:bg-[#F5F2EE] hover:bg-[#F5F2EE]'
+              required
+            />
+          </div>
+
+          {/* Кнопка регистрации */}
           <Button
             type='submit'
             disabled={loading}
             className='w-full bg-white text-[#eb5e28] hover:bg-gray-100 hover:scale-105 font-semibold py-3 rounded-[10px] transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            {loading ? 'Вход...' : 'Войти'}
+            {loading ? 'Регистрация...' : 'Зарегистрироваться'}
           </Button>
         </form>
 
-        {/* Ссылка на регистрацию */}
+        {/* Ссылка на логин */}
         <div className='text-center mt-6'>
-          <span className='text-white'>Нет аккаунта? </span>
+          <span className='text-white'>Уже есть аккаунт? </span>
           <Link
-            to='/register'
+            to='/login'
             className='text-white underline hover:text-gray-200 transition-colors duration-200 font-medium'
           >
-            Зарегистрироваться
+            Войти
           </Link>
         </div>
       </div>
@@ -111,4 +139,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;

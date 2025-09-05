@@ -1,4 +1,5 @@
 import React, {useState, useEffect} from 'react';
+import {useNavigate} from 'react-router-dom';
 import {Button} from '../../components/ui/button';
 import CustomTable from '../../Shared/features/table';
 import {Input} from '../../components/ui/input';
@@ -23,6 +24,7 @@ const namesArr = [
 ];
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const {vacancies} = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -156,7 +158,10 @@ const HomePage = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Button className='flex gap-[10px] p-[16px] pb-[10px] pt-[10px] w-[209px] h-[40px] cursor-pointer'>
+        <Button
+          onClick={() => navigate('/createVacancy')}
+          className='flex gap-[10px] p-[16px] pb-[10px] pt-[10px] w-[209px] h-[40px] cursor-pointer'
+        >
           <img src={plusIcon} alt='Создать вакансию' />
           Создать вакансию
         </Button>

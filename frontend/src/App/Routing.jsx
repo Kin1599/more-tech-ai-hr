@@ -4,6 +4,7 @@ import Layout from '../Shared/Layout';
 import HomePage from '../Pages/HomePage';
 import AboutPage from '../Pages/AboutPage';
 import LoginPage from '../Pages/LoginPage';
+import RegisterPage from '../Pages/RegisterPage';
 import VacancyPage from '../Pages/VacancyPage';
 import NotFoundPage from '../Pages/NotFoundPage';
 
@@ -42,6 +43,14 @@ const Routing = () => {
             }
           />
           <Route
+            path='/createVacancy'
+            element={
+              <ProtectedRoute>
+                <VacancyPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path='/vacancy/:id'
             element={
               <ProtectedRoute>
@@ -50,6 +59,7 @@ const Routing = () => {
             }
           />
           <Route path='/login' element={<LoginPage />} />
+          <Route path='/register' element={<RegisterPage />} />
           <Route path='*' element={<NotFoundPage />} />
         </Route>
       </Routes>
