@@ -12,6 +12,14 @@ router = APIRouter(tags=["hr"])
 def get_vacancies_endpoint(db: Session = Depends(get_session)):
     return get_vacancies(db)
 
+@router.post('/vacancies')
+def create_vacancy():
+    ...
+
+@router.put('/vacancies/{vacancy_id}')
+def change_vacancy():
+    ...
+
 @router.get('/vacancies/{vacancy_id}', response_model=list[ApplicationResponse], dependencies=[Depends(get_current_hr_user)])
 def get_vacancy_applications_endpoint(vacancy_id: int, db: Session = Depends(get_session)):
     applications = get_vacancy_applications(db, vacancy_id)

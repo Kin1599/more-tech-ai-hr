@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 from enum import Enum
@@ -24,8 +24,7 @@ class VacancyResponse(BaseModel):
     responsesWithout: int
     date: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ApplicationResponse(BaseModel):
     applicantId: int
@@ -37,8 +36,7 @@ class ApplicationResponse(BaseModel):
     contacts: str
     sumGrade: Optional[float] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ApplicantDetailResponse(BaseModel):
     name: str
@@ -52,8 +50,7 @@ class ApplicantDetailResponse(BaseModel):
     sumGrade: Optional[float] = None
     cv: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class EventRequest(BaseModel):
     reqType: str  # "reject" | "next"
@@ -64,5 +61,4 @@ class EventResponse(BaseModel):
 class ApplicantSummaryResponse(BaseModel):
     summary: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

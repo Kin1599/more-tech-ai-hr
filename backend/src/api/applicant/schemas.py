@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from enum import Enum
 
@@ -17,8 +17,7 @@ class MeetingResponse(BaseModel):
     meetLink: Optional[str] = None
     calendarLink: Optional[str] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ApplicationStatusResponse(BaseModel):
     status: MeetingStatusEnum
@@ -27,5 +26,4 @@ class ApplicationStatusResponse(BaseModel):
     tribe: str
     otherInfo: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

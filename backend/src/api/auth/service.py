@@ -12,7 +12,7 @@ def get_user_by_email(db: Session, email: str):
 def get_user_by_id(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
 
-def create_user(db: Session, user: UserCreate):
+def create_user(db: Session, user: UserCreate) -> User:
     existing_user = get_user_by_email(db, user.email)
     if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
@@ -29,29 +29,24 @@ def create_user(db: Session, user: UserCreate):
 
     db.add(new_user)
     db.commit()
+    db.refresh(new_user)
 
     if user.role == RoleEnum.hr:
-        hr_profile = HRProfile(user_id=new_user.id)
-        db.add(hr_profile)
+        db.add(HRProfile(user_id=new_user.id))
     elif user.role == RoleEnum.applicant:
-        applicant_profile = ApplicantProfile(user_id=new_user.id)
-        db.add(applicant_profile)
+        db.add(ApplicantProfile(user_id=new_user.id))
     
     db.commit()
-    db.refresh(new_user)
     return new_user
 
-def authenticate_user(db: Session, email: str, password: str):
+def authenticate_user(db: Session, email: str, password: str) -> User | None:
     user = get_user_by_email(db, email)
     if not user or not verify_password(password, user.password_hash):
-        return False
-    
-    user.last_login = datetime.now(timezone.utc)
-    db.commit()
-    
+        return None
+        
     return user
 
-def get_user_info_from_token(db: Session, email: str):
+def get_user_info_from_token(db: Session, email: str) -> User:
     user = get_user_by_email(db, email)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
