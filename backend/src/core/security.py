@@ -52,3 +52,8 @@ async def get_current_hr_user(current_user: User = Depends(get_current_user)):
     if current_user.role != "hr":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="HR role required")
     return current_user
+
+async def get_current_applicant_user(current_user: User = Depends(get_current_user)):
+    if current_user.role != "applicant":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Applicant role required")
+    return current_user

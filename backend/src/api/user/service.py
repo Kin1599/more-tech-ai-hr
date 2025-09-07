@@ -1,4 +1,4 @@
-import os
+import hashlib
 import uuid
 import aiofiles
 from pathlib import Path
@@ -6,7 +6,7 @@ import aiofiles
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from ...models.models import User, HRProfile, ApplicantProfile
+from ...models.models import ApplicantResumeVersion, User, HRProfile, ApplicantProfile
 from .schemas import HrUpdate, ApplicantUpdate, Hr, Applicant
 
 ALLOWED_EXTS = {".pdf", ".docx", ".doc", ".txt"}
@@ -68,6 +68,7 @@ async def save_resume_for_user(db: Session, user_id: int, file: UploadFile, resu
     filename = f"{user_id}_{uuid.uuid4().hex}{ext}"
     dest_path = resumes_dir / filename
 
+    file_hash = hashlib.sha256()
     total = 0
     try:
         async with aiofiles.open(dest_path, "wb") as out:
@@ -82,18 +83,25 @@ async def save_resume_for_user(db: Session, user_id: int, file: UploadFile, resu
                         detail=f"File too large (> {MAX_FILE_MB} MB)"
                     )
                 await out.write(chunk)
+                file_hash.update(chunk)
     finally:
         await file.close()
 
-    old = profile.cv
+    db.query(ApplicantResumeVersion).filter(
+        ApplicantResumeVersion.applicant_id == profile.id,
+        ApplicantResumeVersion.is_current == True
+    ).update({"is_current": False})
+
+    new_resume = ApplicantResumeVersion(
+        applicant_id=profile.id,
+        storage_path=str(dest_path),
+        text_hash=file_hash.hexdigest(),
+        is_current=True
+    )
+    db.add(new_resume)
+
     profile.cv = str(dest_path)
     db.commit()
     db.refresh(profile)
-
-    if old and os.path.exists(old) and old != str(dest_path):
-        try:
-            os.remove(old)
-        except OSError:
-            pass
 
     return Applicant.model_validate(profile, from_attributes=True)
