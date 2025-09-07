@@ -1,14 +1,16 @@
-from sqlalchemy import Column, Enum, Integer, String, Numeric, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Enum, Integer, String, Numeric, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
 
 Base = declarative_base()
 
 StatusEnum = Enum('review', 'screening', 'result', 'reject', 'approve', name='status_enum')
-VacancyStatusEnum = Enum('hold', 'found', 'approve', name='vacancy_status_enum')
+VacancyStatusEnum = Enum('active', 'closed', 'stopped', name='vacancy_status_enum')
 RoleEnum = Enum('hr', 'applicant', name='role_enum')
 ReqTypeEnum = Enum('reject', 'next', name='req_type_enum')
 MeetingStatusEnum = Enum('cvReview', 'waitPickTime', 'waitMeeting', 'waitResult', 'reject', 'approve', name='meeting_status_enum')
+OfferTypeEnum = Enum('TK', 'GPH', 'IP', name='offer_type_enum')
+BusyTypeEnum = Enum('allTime', 'projectTime', name='busy_type_enum')
 
 class User(Base):
     __tablename__ = 'users'
@@ -46,6 +48,25 @@ class Vacancy(Base):
     department = Column(String)
     status = Column(VacancyStatusEnum)
     date = Column(DateTime)
+    region = Column(String)
+    city = Column(String)
+    address = Column(String)
+    offerType = Column(OfferTypeEnum)
+    busyType = Column(BusyTypeEnum)
+    graph = Column(String)
+    salaryMin = Column(Numeric)
+    salaryMax = Column(Numeric)
+    annualBonus = Column(Numeric)
+    bonusType = Column(String)  
+    description = Column(Text)  
+    promt = Column(Text) 
+    exp = Column(Integer)  
+    degree = Column(Boolean)  
+    specialSoftware = Column(String)  
+    computerSkills = Column(String) 
+    foreignLanguages = Column(String) 
+    languageLevel = Column(String)
+    businessTrips = Column(Boolean)
 
     hr_profile = relationship("HRProfile", back_populates="vacancies")
     applications = relationship("Application", back_populates="vacancy")
