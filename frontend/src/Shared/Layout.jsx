@@ -4,7 +4,6 @@ import styles from './Layout.module.css';
 import {Avatar, AvatarImage, AvatarFallback} from '../components/ui/avatar';
 import {useStore} from '../App/Store';
 import logoIcon from './imgs/logo.svg';
-// import userIcon from './imgs/user.svg';
 import logoutIcon from './imgs/log-out.svg';
 
 const Layout = () => {

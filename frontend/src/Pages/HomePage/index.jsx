@@ -23,7 +23,7 @@ const namesArr = [
 ];
 
 const HomePage = () => {
-  const {vacancies, fetchVacancies} = useStore();
+  const {vacancies, fetchVacancies, uploadCV} = useStore();
   const fileInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -43,12 +43,29 @@ const HomePage = () => {
   };
 
   // Функция для обработки выбранного файла
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (file) {
       console.log('Выбран файл:', file.name);
-      // Здесь можно добавить логику обработки файла
-      alert(`Файл "${file.name}" успешно загружен!`);
+
+      try {
+        console.log(file);
+        const result = await uploadCV(file);
+
+        if (result.success) {
+          alert(`Файл "${file.name}" успешно загружен! Вакансия создана.`);
+          // Обновляем список вакансий
+          await fetchVacancies();
+        } else {
+          alert(`Ошибка при загрузке файла: ${result.error}`);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке файла:', error);
+        alert('Произошла ошибка при загрузке файла');
+      }
+
+      // Очищаем input
+      event.target.value = '';
     }
   };
 
@@ -67,7 +84,7 @@ const HomePage = () => {
     if (statusFilter === 'active') {
       matchesStatus = vacancy.status === 'active';
     } else if (statusFilter === 'closed') {
-      matchesStatus = ['hold', 'found', 'approve'].includes(vacancy.status);
+      matchesStatus = ['closed', 'stopped'].includes(vacancy.status);
     }
     // Если statusFilter === 'all', то matchesStatus остается true
 

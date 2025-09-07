@@ -67,8 +67,15 @@ const RegisterPage = () => {
       const result = await register(email, password, resumeFile);
 
       if (result.success) {
-        // Успешная регистрация - перенаправляем на главную страницу
-        navigate('/');
+        // Успешная регистрация - проверяем сохраненный URL
+        const savedUrl = localStorage.getItem('redirectAfterLogin');
+        if (savedUrl) {
+          // Перенаправляем на сохраненный URL
+          navigate(savedUrl);
+        } else {
+          // Перенаправляем на главную страницу
+          navigate('/');
+        }
       } else {
         setError(result.error);
       }

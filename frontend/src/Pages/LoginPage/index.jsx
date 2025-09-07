@@ -21,15 +21,23 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const result = login(email, password);
+      const result = await login(email, password);
 
       if (result.success) {
-        // Успешная авторизация - перенаправляем на главную страницу
-        navigate('/');
+        // Успешная авторизация - проверяем сохраненный URL
+        const savedUrl = localStorage.getItem('redirectAfterLogin');
+        if (savedUrl) {
+          // Перенаправляем на сохраненный URL
+          navigate(savedUrl);
+        } else {
+          // Перенаправляем на главную страницу
+          navigate('/');
+        }
       } else {
         setError(result.error);
       }
     } catch (err) {
+      console.error('Ошибка при входе:', err);
       setError('Произошла ошибка при входе');
     } finally {
       setLoading(false);
@@ -90,7 +98,7 @@ const LoginPage = () => {
           <Button
             type='submit'
             disabled={loading}
-            className='w-full bg-white text-[#eb5e28] hover:bg-gray-100 hover:scale-105 font-semibold py-3 rounded-[10px] transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
+            className='w-full bg-white text-[#eb5e28] hover:bg-gray-100 hover:scale-105 font-semibold py-3 rounded-[10px] transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
           >
             {loading ? 'Вход...' : 'Войти'}
           </Button>

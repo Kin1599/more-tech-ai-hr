@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {getVacancies, login, register} from '../../Api';
+import {getVacancies, getVacancy, updateVacancyStatus, getApplicantApplications, login, register, uploadCV} from '../../Api';
 import {setAuthToken, setStoredToken, removeStoredToken, getStoredToken} from '../../Api/config';
 
 export const useStore = create((set) => {
@@ -45,6 +45,12 @@ export const useStore = create((set) => {
         set({ user: userData });
         localStorage.setItem('user', JSON.stringify(userData));
         
+        // Очищаем сохраненный URL для редиректа (если есть)
+        const savedUrl = localStorage.getItem('redirectAfterLogin');
+        if (savedUrl) {
+          localStorage.removeItem('redirectAfterLogin');
+        }
+        
         return { success: true, user: userData };
       } catch (error) {
         console.error('Ошибка при входе:', error);
@@ -74,6 +80,12 @@ export const useStore = create((set) => {
         set({ user: userData });
         localStorage.setItem('user', JSON.stringify(userData));
         
+        // Очищаем сохраненный URL для редиректа (если есть)
+        const savedUrl = localStorage.getItem('redirectAfterLogin');
+        if (savedUrl) {
+          localStorage.removeItem('redirectAfterLogin');
+        }
+        
         return { success: true, user: userData };
       } catch (error) {
         console.error('Ошибка при регистрации:', error);
@@ -85,8 +97,8 @@ export const useStore = create((set) => {
     },
     vacancies: [],
     
-    // Данные об откликах для каждой вакансии
-    responses: {},
+    // Отклики апликанта
+    applicantApplications: [],
     
     // Функция для загрузки вакансий с API
     fetchVacancies: async () => {
@@ -98,26 +110,104 @@ export const useStore = create((set) => {
       }
     },
     
-    // Функции для работы с вакансиями
-    addVacancy: (newVacancy) => set((state) => {
-      const maxId = Math.max(...state.vacancies.map(v => v.vacancyId), 0);
-      return {
-        vacancies: [...state.vacancies, {
-          ...newVacancy,
-          vacancyId: maxId + 1
-        }]
-      };
+    // Функция для загрузки конкретной вакансии
+    fetchVacancy: async (vacancyId) => {
+      try {
+        const vacancy = await getVacancy(vacancyId);
+        return { success: true, data: vacancy };
+      } catch (error) {
+        console.error('Ошибка при загрузке вакансии:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при загрузке вакансии' 
+        };
+      }
+    },
+    
+    // Функция для загрузки откликов апликанта
+    fetchApplicantApplications: async (applicantId) => {
+      try {
+        const applications = await getApplicantApplications(applicantId);
+        set({ applicantApplications: applications });
+        return { success: true, data: applications };
+      } catch (error) {
+        console.error('Ошибка при загрузке откликов апликанта:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при загрузке откликов' 
+        };
+      }
+    },
+    
+    // Функция для загрузки CV
+    uploadCV: async (file, vacancyId = null) => {
+      try {
+        const vacancyData = await uploadCV(file, vacancyId);
+        
+        if (vacancyId) {
+          // Обновляем существующую вакансию
+          set((state) => ({
+            vacancies: state.vacancies.map(v => 
+              v.vacancyId === vacancyId ? { ...v, ...vacancyData } : v
+            )
+          }));
+        } else {
+          // Добавляем новую вакансию
+          set((state) => ({
+            vacancies: [...state.vacancies, vacancyData]
+          }));
+        }
+        
+        return { success: true, data: vacancyData };
+      } catch (error) {
+        console.error('Ошибка при загрузке CV:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при загрузке CV' 
+        };
+      }
+    },
+    
+    // Функция для обновления вакансии
+    updateVacancy: (vacancyId, updates) => set((state) => {
+      const existingIndex = state.vacancies.findIndex(v => v.vacancyId === vacancyId);
+      
+      if (existingIndex !== -1) {
+        // Обновляем существующую вакансию
+        return {
+          vacancies: state.vacancies.map(v => 
+            v.vacancyId === vacancyId ? { ...v, ...updates } : v
+          )
+        };
+      } else {
+        // Добавляем новую вакансию
+        return {
+          vacancies: [...state.vacancies, { ...updates, vacancyId }]
+        };
+      }
     }),
     
-    updateVacancy: (vacancyId, updates) => set((state) => ({
-      vacancies: state.vacancies.map(v => 
-        v.vacancyId === vacancyId ? { ...v, ...updates } : v
-      )
-    })),
-    
-    deleteVacancy: (vacancyId) => set((state) => ({
-      vacancies: state.vacancies.filter(v => v.vacancyId !== vacancyId)
-    })),
+    // Функция для изменения статуса вакансии
+    changeVacancyStatus: async (vacancyId, status) => {
+      try {
+        await updateVacancyStatus(vacancyId, status);
+        
+        // Обновляем статус в локальном состоянии
+        set((state) => ({
+          vacancies: state.vacancies.map(v => 
+            v.vacancyId === vacancyId ? { ...v, status } : v
+          )
+        }));
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Ошибка при изменении статуса вакансии:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при изменении статуса вакансии' 
+        };
+      }
+    },
     
     // Функция выхода пользователя
     logout: () => {

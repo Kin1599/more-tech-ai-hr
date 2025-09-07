@@ -12,9 +12,8 @@ const StatusDropdown = ({currentStatus, onStatusChange}) => {
 
   const statusOptions = [
     {value: 'active', label: 'Активная'},
-    {value: 'hold', label: 'На паузе'},
-    {value: 'found', label: 'Найдена'},
-    {value: 'approve', label: 'Одобрена'},
+    {value: 'closed', label: 'Закрыта'},
+    {value: 'stopped', label: 'Остановлена'},
   ];
 
   const getCurrentLabel = () => {
@@ -26,12 +25,10 @@ const StatusDropdown = ({currentStatus, onStatusChange}) => {
     switch (status) {
       case 'active':
         return 'text-green-600 bg-green-50 border-green-200';
-      case 'hold':
+      case 'closed':
+        return 'text-red-600 bg-red-50 border-red-200';
+      case 'stopped':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'found':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'approve':
-        return 'text-purple-600 bg-purple-50 border-purple-200';
       default:
         return 'text-gray-600 bg-gray-50 border-gray-200';
     }

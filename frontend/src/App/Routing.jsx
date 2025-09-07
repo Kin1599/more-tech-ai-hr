@@ -1,5 +1,5 @@
-import React from 'react';
-import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
+import React, {useEffect} from 'react';
+import {BrowserRouter as Router, Routes, Route, useLocation} from 'react-router-dom';
 import Layout from '../Shared/Layout';
 import HomePage from '../Pages/HomePage';
 import AboutPage from '../Pages/AboutPage';
@@ -13,6 +13,22 @@ import NotFoundPage from '../Pages/NotFoundPage';
 
 import {Navigate} from 'react-router-dom';
 import {useStore} from '../App/Store';
+
+// Компонент для сохранения URL перед редиректом на логин
+const URLSaver = ({children}) => {
+  const location = useLocation();
+  const {user} = useStore();
+
+  useEffect(() => {
+    // Если пользователь не авторизован и мы на защищенной странице апликанта
+    if (!user && location.pathname.startsWith('/applicant/') && location.pathname !== '/applicant') {
+      // Сохраняем текущий URL в localStorage
+      localStorage.setItem('redirectAfterLogin', location.pathname + location.search);
+    }
+  }, [user, location]);
+
+  return children;
+};
 
 const ProtectedRoute = ({children}) => {
   const {user} = useStore();
@@ -49,7 +65,7 @@ const ApplicantRoute = ({children}) => {
     return <Navigate to='/hr' replace />;
   }
 
-  return children;
+  return <URLSaver>{children}</URLSaver>;
 };
 
 const RoleBasedRedirect = () => {
@@ -62,6 +78,13 @@ const RoleBasedRedirect = () => {
   if (user.role === 'hr') {
     return <Navigate to='/hr' replace />;
   } else if (user.role === 'applicant') {
+    // Проверяем, есть ли сохраненный URL для редиректа
+    const savedUrl = localStorage.getItem('redirectAfterLogin');
+    if (savedUrl && savedUrl.startsWith('/applicant/')) {
+      // Очищаем сохраненный URL и перенаправляем туда
+      localStorage.removeItem('redirectAfterLogin');
+      return <Navigate to={savedUrl} replace />;
+    }
     return <Navigate to='/applicant' replace />;
   }
 

@@ -9,7 +9,7 @@ import {useStore} from '../../App/Store';
 const VacancyApplicantPage = () => {
   const {vacancyId, candidateId} = useParams();
   const navigate = useNavigate();
-  const {vacancies, responses} = useStore();
+  const {vacancies} = useStore();
 
   const [applicant, setApplicant] = useState(null);
   const [vacancy, setVacancy] = useState(null);
@@ -35,11 +35,9 @@ const VacancyApplicantPage = () => {
     const foundVacancy = vacancies.find((v) => v.vacancyId === parseInt(vacancyId));
     setVacancy(foundVacancy);
 
-    // Находим кандидата
-    const vacancyResponses = responses[parseInt(vacancyId)] || [];
-    const foundApplicant = vacancyResponses.find((r) => r.candidateId === parseInt(candidateId));
-    setApplicant(foundApplicant);
-  }, [vacancyId, candidateId, vacancies, responses]);
+    // Пока кандидаты не реализованы - используем null
+    setApplicant(null);
+  }, [vacancyId, candidateId, vacancies]);
 
   // Функция для отображения статуса
   const getStatusText = (status) => {
