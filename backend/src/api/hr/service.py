@@ -3,7 +3,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
 from .helpers import _apply_mapped_to_vacancy, _map_application_status, _vacancy_to_response
-from ...models.models import HRProfile, User, Vacancy, Application
+from ...models.models import HRProfile, User, Vacancy, JobApplication
 from .utils import parse_vacancy_docx, to_decimal, vacancy_to_txt
 
 
@@ -47,7 +47,7 @@ def create_vacancy(db: Session, current_user: User, file):
         annualBonus=to_decimal(0),
         bonusType="",
         description="",
-        promt="",
+        prompt="",
         exp=0,
         degree=False,
         specialSoftware="",
@@ -104,8 +104,8 @@ def get_vacancy_detail(db: Session, vacancy_id: int) -> dict:
     v = (
         db.query(Vacancy)
           .options(
-              joinedload(Vacancy.applications).joinedload(Application.applicant_profile),
-              joinedload(Vacancy.applications).joinedload(Application.meetings), 
+              joinedload(Vacancy.job_applications).joinedload(JobApplication.applicant_profile),
+              joinedload(Vacancy.job_applications).joinedload(JobApplication.meetings), 
           )
           .filter(Vacancy.id == vacancy_id)
           .first()
@@ -116,7 +116,7 @@ def get_vacancy_detail(db: Session, vacancy_id: int) -> dict:
     base = _vacancy_to_response(v)
 
     detail = []
-    for app in (v.applications or []):
+    for app in (v.job_applications or []):
         prof = getattr(app, "applicant_profile", None)
         full_name = " ".join(filter(None, [
             getattr(prof, "name", None),
@@ -136,5 +136,5 @@ def get_vacancy_detail(db: Session, vacancy_id: int) -> dict:
             "checked": False,
         })
 
-    base["detailResponces"] = detail
+    base["detailResponses"] = detail
     return base

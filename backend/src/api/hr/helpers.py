@@ -34,8 +34,7 @@ def _vacancy_to_response(v: Vacancy) -> dict:
         "department": v.department or "",
         "date": v.date,
 
-        "responses": len(v.applications or []),
-        "responsesWithout": len([a for a in (v.applications or []) if getattr(a, "status", None) == "review"]),
+        "responses": len(v.job_applications or []),
 
         "region": v.region,
         "city": v.city,
@@ -48,7 +47,7 @@ def _vacancy_to_response(v: Vacancy) -> dict:
         "annualBonus": float(v.annualBonus or 0),
         "bonusType": v.bonusType,
         "description": v.description,
-        "promt": v.promt,
+        "prompt": v.prompt,
         "exp": v.exp,
         "degree": bool(v.degree) if v.degree is not None else None,
         "specialSoftware": v.specialSoftware,
@@ -73,7 +72,7 @@ def _apply_mapped_to_vacancy(v: Vacancy, mapped: dict) -> None:
     v.annualBonus = to_decimal(mapped.get("annualBonus"))
     v.bonusType = mapped.get("bonusType") or ""
     v.description = mapped.get("description") or ""
-    v.promt = mapped.get("promt") or ""
+    v.prompt = mapped.get("prompt") or ""
     v.exp = int(mapped.get("exp") or 0)
     v.degree = bool(mapped.get("degree") or False)
     v.specialSoftware = mapped.get("specialSoftware") or ""

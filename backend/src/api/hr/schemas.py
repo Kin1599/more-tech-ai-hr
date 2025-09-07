@@ -1,7 +1,16 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import List, Optional
 from enum import Enum
+
+class OfferTypeEnum(str, Enum):
+    TK = "TK"
+    GPH = "GPH"
+    IP = "IP"
+
+class BusyTypeEnum(str, Enum):
+    allTime = "allTime"
+    projectTime = "projectTime"
 
 class VacancyStatusEnum(str, Enum):
     active = "active"
@@ -29,20 +38,19 @@ class VacancyResponse(BaseModel):
     date: datetime
 
     responses: int = 0
-    responsesWithout: int = 0
     
     region: Optional[str] = None
     city: Optional[str] = None
     address: Optional[str] = None
-    offerType: Optional[str] = None
-    busyType: Optional[str] = None
+    offerType: Optional[OfferTypeEnum] = None
+    busyType: Optional[BusyTypeEnum] = None
     graph: Optional[str] = None
     salaryMin: Optional[float] = None
     salaryMax: Optional[float] = None
     annualBonus: Optional[float] = None
     bonusType: Optional[str] = None
     description: Optional[str] = None
-    promt: Optional[str] = None
+    prompt: Optional[str] = None
     exp: Optional[int] = None
     degree: Optional[bool] = None
     specialSoftware: Optional[str] = None
@@ -61,4 +69,4 @@ class VacancyDetailApplicant(BaseModel):
     checked: Optional[bool] = False
 
 class VacancyDetailResponse(VacancyResponse):
-    detailResponces: List[VacancyDetailApplicant]
+    detailResponses: List[VacancyDetailApplicant]
