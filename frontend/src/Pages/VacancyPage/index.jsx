@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useRef} from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
 import {useStore} from '../../App/Store';
 import {Button} from '../../components/ui/button';
@@ -14,13 +14,12 @@ import StatusDropdown from './components/StatusDropdown';
 import ResponsesTable from './components/ResponsesTable';
 import vtbLogo from '../../Shared/imgs/vtb.png';
 import editIcon from '../../Shared/imgs/edit-3.svg';
-import saveIcon from '../../Shared/imgs/edit-3.svg';
-import arrowIcon from '../../Shared/imgs/arrow-right.svg';
 
 const VacancyPage = () => {
   const {id} = useParams();
   const navigate = useNavigate();
-  const {vacancies, updateVacancy, addVacancy, responses} = useStore();
+  const {vacancies, updateVacancy, responses} = useStore();
+  const fileInputRef = useRef(null);
 
   // Проверяем, создаем ли новую вакансию
   const isNewVacancy = !id;
@@ -32,133 +31,87 @@ const VacancyPage = () => {
   const vacancyResponses = vacancy ? responses[vacancy.vacancyId] || [] : [];
 
   // Состояние редактирования - для новой вакансии сразу в режиме редактирования
-  const [isEditing, setIsEditing] = useState(isNewVacancy);
-  const [editedVacancy, setEditedVacancy] = useState({
-    name: vacancy?.name || '',
-    age: vacancy?.age || '',
-    salary: vacancy?.salary || '',
-    salaryType: vacancy?.salaryType || 'до',
-    location: vacancy?.location || '',
-    format: vacancy?.format || 'Офис',
-    status: vacancy?.status || 'active',
-    description: vacancy?.description || '',
-    prompt: vacancy?.prompt || '',
-  });
+  const [isEditing] = useState(isNewVacancy);
+
+  // Функция для загрузки файла
+  const handleFileUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Функция для обработки выбранного файла
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      console.log('Выбран файл:', file.name);
+      // Здесь можно добавить логику обработки файла
+      alert(`Файл "${file.name}" успешно загружен!`);
+    }
+  };
 
   // Функция для изменения статуса вакансии
   const handleStatusChange = (newStatus) => {
     updateVacancy(vacancy.vacancyId, {status: newStatus});
   };
 
-  // Функция для начала редактирования
+  // Функция для начала редактирования - теперь загружает файл
   const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  // Функция для сохранения изменений
-  const handleSave = () => {
-    if (isNewVacancy) {
-      // Создаем новую вакансию
-      const newVacancy = {
-        ...editedVacancy,
-        department: 'Отдел разработки', // По умолчанию
-        responses: 0,
-        responsesWithout: 0,
-        date: new Date().toISOString().split('T')[0],
-      };
-      addVacancy(newVacancy);
-      navigate('/');
-    } else {
-      // Обновляем существующую вакансию
-      updateVacancy(vacancy.vacancyId, editedVacancy);
-      setIsEditing(false);
-    }
-  };
-
-  // Функция для отмены редактирования
-  const handleCancel = () => {
-    if (isNewVacancy) {
-      // Для новой вакансии - возвращаемся на главную страницу
-      navigate('/');
-    } else {
-      // Для существующей вакансии - сбрасываем изменения
-      setEditedVacancy({
-        name: vacancy?.name || '',
-        age: vacancy?.age || '',
-        salary: vacancy?.salary || '',
-        salaryType: vacancy?.salaryType || 'до',
-        location: vacancy?.location || '',
-        format: vacancy?.format || 'Офис',
-        status: vacancy?.status || 'active',
-        description: vacancy?.description || '',
-        prompt: vacancy?.prompt || '',
-      });
-      setIsEditing(false);
-    }
-  };
-
-  // Функция для обновления полей редактирования
-  const handleFieldChange = (field, value) => {
-    setEditedVacancy((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    handleFileUpload();
   };
 
   if (!vacancy && !isNewVacancy) {
     return (
       <div className='flex flex-col items-center justify-center min-h-[400px]'>
         <h1 className='text-2xl font-semibold mb-4'>Вакансия не найдена</h1>
-        <Button onClick={() => navigate('/')}>Вернуться к списку вакансий</Button>
+        <Button onClick={() => navigate('/hr')}>Вернуться к списку вакансий</Button>
       </div>
     );
   }
 
   return (
     <div className='flex flex-col gap-[10px]'>
+      {/* Скрытый input для загрузки файла */}
+      <input
+        type='file'
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{display: 'none'}}
+        accept='.pdf,.doc,.docx,.txt'
+      />
+
+      {/* Кнопка назад */}
+      <div className='mb-4'>
+        <Button onClick={() => navigate('/hr')} variant='outline' className='flex items-center gap-2 cursor-pointer'>
+          <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M15 19l-7-7 7-7' />
+          </svg>
+          Назад к списку вакансий
+        </Button>
+      </div>
+
       <div className='flex justify-between items-center mb-[10px]'>
-        {isEditing ? (
+        {/* Закомментированная форма редактирования названия */}
+        {/* {isEditing ? (
           <Input
             value={editedVacancy.name}
             onChange={(e) => handleFieldChange('name', e.target.value)}
             className='text-[30px] font-semibold bg-white border-2 border-gray-400 rounded-[10px] p-3 w-auto min-w-[400px] h-[45px]'
             placeholder='Название вакансии'
           />
-        ) : (
-          <div className='text-[30px] font-semibold'>{isNewVacancy ? 'Новая вакансия' : vacancy.name}</div>
-        )}
+        ) : ( */}
+        <div className='text-[30px] font-semibold'>{isNewVacancy ? 'Новая вакансия' : vacancy?.name || 'Вакансия'}</div>
+        {/* )} */}
         <div className='flex gap-[20px]'>
-          {isEditing ? (
-            <>
-              <Button
-                onClick={handleSave}
-                className='bg-[#303030] hover:bg-[#eb5e28] hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-[10px] p-[10px] pr-[16px] pl-[16px] text-[16px] text-white hover:text-white'
-              >
-                <img src={saveIcon} alt='Сохранить' />
-                Опубликовать
-              </Button>
-              <Button
-                onClick={handleCancel}
-                className='bg-gray-500 hover:bg-gray-600 hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-[10px] p-[10px] pr-[16px] pl-[16px] text-[16px] text-white hover:text-white'
-              >
-                Отмена
-              </Button>
-              <StatusDropdown
-                currentStatus={editedVacancy.status}
-                onStatusChange={(status) => handleFieldChange('status', status)}
-              />
-            </>
-          ) : (
-            <>
-              <Button
-                onClick={handleEdit}
-                className='bg-[#303030] hover:bg-[#eb5e28] hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-[10px] p-[10px] pr-[16px] pl-[16px] text-[16px] text-white hover:text-white'
-              >
-                <img src={editIcon} alt='Редактировать' />
-                Редактировать
-              </Button>
-              <StatusDropdown currentStatus={vacancy.status} onStatusChange={handleStatusChange} />
-            </>
+          <Button
+            onClick={handleEdit}
+            className='bg-[#303030] hover:bg-[#eb5e28] hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-[10px] p-[10px] pr-[16px] pl-[16px] text-[16px] text-white hover:text-white'
+          >
+            <img src={editIcon} alt='Загрузить файл' />
+            Редактировать вакансию
+          </Button>
+          {!isNewVacancy && vacancy && (
+            <StatusDropdown currentStatus={vacancy.status} onStatusChange={handleStatusChange} />
           )}
         </div>
       </div>
@@ -166,20 +119,22 @@ const VacancyPage = () => {
         <div className='flex flex-col gap-[10px]'>
           <div className='text-[20px] flex items-center gap-2'>
             <span className='font-semibold'>Опыт работы:</span>
-            {isEditing ? (
+            {/* Закомментированная форма редактирования опыта */}
+            {/* {isEditing ? (
               <Input
                 value={editedVacancy.age}
                 onChange={(e) => handleFieldChange('age', e.target.value)}
                 className='w-[100px] bg-white border-2 border-gray-400 rounded-[5px] p-1 text-[18px]'
                 placeholder='0'
               />
-            ) : (
-              <span>{` от ${vacancy?.age || 0} лет`}</span>
-            )}
+            ) : ( */}
+            <span>{` от ${vacancy?.age || 0} лет`}</span>
+            {/* )} */}
           </div>
           <div className='text-[20px] flex items-center gap-2'>
             <span className='font-semibold'>Заработная плата:</span>
-            {isEditing ? (
+            {/* Закомментированная форма редактирования зарплаты */}
+            {/* {isEditing ? (
               <div className='flex items-center gap-2'>
                 <Input
                   value={editedVacancy.salary}
@@ -207,26 +162,28 @@ const VacancyPage = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-            ) : (
-              <span>{` ${vacancy?.salary || 0} рублей ${(vacancy?.salaryType || 'до') === 'до' ? 'до' : 'после'} вычета налогов`}</span>
-            )}
+            ) : ( */}
+            <span>{` ${vacancy?.salary || 0} рублей ${(vacancy?.salaryType || 'до') === 'до' ? 'до' : 'после'} вычета налогов`}</span>
+            {/* )} */}
           </div>
           <div className='text-[20px] flex items-center gap-2'>
             <span className='font-semibold'>Локация:</span>
-            {isEditing ? (
+            {/* Закомментированная форма редактирования локации */}
+            {/* {isEditing ? (
               <Input
                 value={editedVacancy.location}
                 onChange={(e) => handleFieldChange('location', e.target.value)}
                 className='w-[200px] bg-white border-2 border-gray-400 rounded-[5px] p-1 text-[18px]'
                 placeholder='Москва'
               />
-            ) : (
-              <span>{` ${vacancy?.location || ''}`}</span>
-            )}
+            ) : ( */}
+            <span>{` ${vacancy?.location || ''}`}</span>
+            {/* )} */}
           </div>
           <div className='text-[20px] flex items-center gap-2'>
             <span className='font-semibold'>Формат:</span>
-            {isEditing ? (
+            {/* Закомментированная форма редактирования формата */}
+            {/* {isEditing ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -242,9 +199,9 @@ const VacancyPage = () => {
                   <DropdownMenuItem onClick={() => handleFieldChange('format', 'Гибрид')}>Гибрид</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <span>{` ${vacancy?.format || 'Офис'}`}</span>
-            )}
+            ) : ( */}
+            <span>{` ${vacancy?.format || 'Офис'}`}</span>
+            {/* )} */}
           </div>
           <div className='text-[24px] font-semibold'>Описание вакансии:</div>
         </div>
@@ -253,31 +210,33 @@ const VacancyPage = () => {
           <div className='text-[24px] font-semibold'>Банк ВТБ</div>
         </div>
       </div>
-      {isEditing ? (
+      {/* Закомментированная форма редактирования описания */}
+      {/* {isEditing ? (
         <Textarea
           value={editedVacancy.description}
           onChange={(e) => handleFieldChange('description', e.target.value)}
           className='text-[20px] rounded-[20px] p-[20px] bg-white border-2 border-gray-400 min-h-[200px] resize-y'
           placeholder='Введите описание вакансии...'
         />
-      ) : (
-        <div className='text-[20px] rounded-[20px] p-[20px] bg-white'>{vacancy?.description || ''}</div>
-      )}
+      ) : ( */}
+      <div className='text-[20px] rounded-[20px] p-[20px] bg-white'>{vacancy?.description || ''}</div>
+      {/* )} */}
       <div className='text-[24px] font-semibold'>Промпт:</div>
-      {isEditing ? (
+      {/* Закомментированная форма редактирования промпта */}
+      {/* {isEditing ? (
         <Textarea
           value={editedVacancy.prompt}
           onChange={(e) => handleFieldChange('prompt', e.target.value)}
           className='text-[20px] rounded-[20px] p-[20px] bg-white border-2 border-gray-400 min-h-[200px] resize-y'
           placeholder='Введите промпт для ИИ...'
         />
-      ) : (
-        <div className='text-[20px] rounded-[20px] p-[20px] bg-white'>{vacancy?.prompt || ''}</div>
-      )}
+      ) : ( */}
+      <div className='text-[20px] rounded-[20px] p-[20px] bg-white'>{vacancy?.prompt || ''}</div>
+      {/* )} */}
       {!isEditing && (
         <>
           <div className='text-[24px] font-semibold'>Отклики:</div>
-          <ResponsesTable responses={vacancyResponses} />
+          <ResponsesTable responses={vacancyResponses} vacancyId={vacancy?.vacancyId || id} />
         </>
       )}
     </div>

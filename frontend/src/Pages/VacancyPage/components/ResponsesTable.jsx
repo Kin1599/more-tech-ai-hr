@@ -1,7 +1,9 @@
 import React from 'react';
+import {Link} from 'react-router-dom';
 import {Avatar, AvatarImage, AvatarFallback} from '../../../components/ui/avatar';
+import arrowIcon from '../../../Shared/imgs/arrow-right.svg';
 
-const ResponsesTable = ({responses}) => {
+const ResponsesTable = ({responses, vacancyId}) => {
   // Функция для отображения статуса
   const getStatusText = (status) => {
     switch (status) {
@@ -59,9 +61,10 @@ const ResponsesTable = ({responses}) => {
       {/* Строки таблицы */}
       <div className='flex flex-col gap-[10px]'>
         {responses.map((response, index) => (
-          <div
+          <Link
             key={response.candidateId || index}
-            className='flex justify-between items-center bg-white border border-solid border-[#303030] rounded-[20px] p-[20px] hover:bg-gray-50 transition-colors duration-200 text-[20px]'
+            to={`/hr/vacancy/${vacancyId}/candidate/${response.candidateId}`}
+            className='flex justify-between items-center bg-white border border-solid border-[#303030] rounded-[20px] p-[20px] hover:bg-[#eb5e28] hover:text-white transition-colors duration-200 cursor-pointer group text-[20px]'
           >
             {/* Кандидат */}
             <div style={{width: '400px'}} className='text-center truncate flex gap-[10px] items-center'>
@@ -79,11 +82,16 @@ const ResponsesTable = ({responses}) => {
 
             {/* Статус */}
             <div style={{width: '200px'}} className='text-center truncate'>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(response.status)}`}>
-                {getStatusText(response.status)}
-              </span>
+              <div className='group-hover:hidden'>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(response.status)}`}>
+                  {getStatusText(response.status)}
+                </span>
+              </div>
+              <div className='hidden group-hover:flex items-center gap-[10px]'>
+                Перейти <img src={arrowIcon} alt='Перейти' className='w-[30px] h-[30px]'></img>
+              </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

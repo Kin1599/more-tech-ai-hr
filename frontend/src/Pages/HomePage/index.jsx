@@ -1,5 +1,4 @@
-import React, {useState, useEffect} from 'react';
-import {useNavigate} from 'react-router-dom';
+import React, {useState, useEffect, useRef} from 'react';
 import {Button} from '../../components/ui/button';
 import CustomTable from '../../Shared/features/table';
 import {Input} from '../../components/ui/input';
@@ -24,12 +23,29 @@ const namesArr = [
 ];
 
 const HomePage = () => {
-  const navigate = useNavigate();
   const {vacancies} = useStore();
+  const fileInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+
+  // Функция для загрузки файла
+  const handleFileUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Функция для обработки выбранного файла
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      console.log('Выбран файл:', file.name);
+      // Здесь можно добавить логику обработки файла
+      alert(`Файл "${file.name}" успешно загружен!`);
+    }
+  };
 
   // Фильтруем вакансии по поисковому запросу и статусу
   const filteredVacancies = vacancies.filter((vacancy) => {
@@ -147,9 +163,18 @@ const HomePage = () => {
 
     return pages;
   };
-
+  console.log(vacancies);
   return (
     <div className='flex flex-col gap-[10px]'>
+      {/* Скрытый input для загрузки файла */}
+      <input
+        type='file'
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{display: 'none'}}
+        accept='.pdf,.doc,.docx,.txt'
+      />
+
       <div className='flex justify-between items-center mb-10'>
         <div className='text-[30px] font-semibold'>Вакансии</div>
         <Input
@@ -159,11 +184,11 @@ const HomePage = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
         <Button
-          onClick={() => navigate('/createVacancy')}
+          onClick={handleFileUpload}
           className='flex gap-[10px] p-[16px] pb-[10px] pt-[10px] w-[209px] h-[40px] cursor-pointer'
         >
-          <img src={plusIcon} alt='Создать вакансию' />
-          Создать вакансию
+          <img src={plusIcon} alt='Загрузить файл' />
+          Загрузить вакансию
         </Button>
         <Dropdown selectedFilter={statusFilter} onFilterChange={setStatusFilter} />
       </div>

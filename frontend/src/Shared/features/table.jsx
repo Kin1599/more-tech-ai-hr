@@ -16,7 +16,7 @@ const CustomTable = ({namesArr, data}) => {
         {data.map((el, index) => (
           <Link
             key={el.vacancyId || index}
-            to={`/vacancy/${el.vacancyId}`}
+            to={`/hr/vacancy/${el.vacancyId}`}
             className='flex justify-between items-center bg-white border border-solid border-[#303030] rounded-[20px] p-[20px] hover:bg-[#eb5e28] hover:text-white transition-colors duration-200 cursor-pointer group text-[20px]'
           >
             {el.map((elData, colIndex) => (
