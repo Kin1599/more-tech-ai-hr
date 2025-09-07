@@ -10,11 +10,37 @@ const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resumeFile, setResumeFile] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
   const {register} = useStore();
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Проверяем тип файла
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Пожалуйста, выберите файл в формате PDF или DOC/DOCX');
+        return;
+      }
+
+      // Проверяем размер файла (максимум 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Размер файла не должен превышать 5MB');
+        return;
+      }
+
+      setResumeFile(file);
+      setError('');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,10 +56,15 @@ const RegisterPage = () => {
       return;
     }
 
+    if (!resumeFile) {
+      setError('Пожалуйста, прикрепите резюме');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = register(email, password);
+      const result = await register(email, password, resumeFile);
 
       if (result.success) {
         // Успешная регистрация - перенаправляем на главную страницу
@@ -41,7 +72,8 @@ const RegisterPage = () => {
       } else {
         setError(result.error);
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Ошибка при регистрации:', error);
       setError('Произошла ошибка при регистрации');
     } finally {
       setLoading(false);
@@ -112,6 +144,23 @@ const RegisterPage = () => {
               className='w-full p-3 rounded-[10px] border-0 bg-[#F5F2EE] text-[#303030] focus:ring-2 focus:ring-white focus:bg-[#F5F2EE] hover:bg-[#F5F2EE]'
               required
             />
+          </div>
+
+          {/* Загрузка резюме */}
+          <div className='space-y-2'>
+            <Label htmlFor='resume' className='text-white font-medium'>
+              Резюме (PDF, DOC, DOCX)
+            </Label>
+            <div className='relative'>
+              <Input
+                id='resume'
+                type='file'
+                onChange={handleFileChange}
+                accept='.pdf,.doc,.docx'
+                className='w-full p-3 rounded-[10px] border-0 bg-[#F5F2EE] text-[#303030] focus:ring-2 focus:ring-white focus:bg-[#F5F2EE] hover:bg-[#F5F2EE] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-[#eb5e28] hover:file:bg-gray-100 h-[55px]'
+                required
+              />
+            </div>
           </div>
 
           {/* Кнопка регистрации */}

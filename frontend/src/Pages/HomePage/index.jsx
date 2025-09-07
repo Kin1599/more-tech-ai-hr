@@ -16,19 +16,24 @@ import plusIcon from '../../Shared/imgs/plus.svg';
 
 const namesArr = [
   {name: 'Должность', width: '250px'},
-  {name: 'Отдел', width: '400px'},
+  {name: 'Регион', width: '400px'},
   {name: 'Откликов', width: '210px'},
-  {name: 'Не просмотрено', width: '210px'},
+  {name: 'Зарплата', width: '210px'},
   {name: 'Статус', width: '130px'},
 ];
 
 const HomePage = () => {
-  const {vacancies} = useStore();
+  const {vacancies, fetchVacancies} = useStore();
   const fileInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+
+  // Загружаем вакансии при монтировании компонента
+  useEffect(() => {
+    fetchVacancies();
+  }, [fetchVacancies]);
 
   // Функция для загрузки файла
   const handleFileUpload = () => {
@@ -99,9 +104,9 @@ const HomePage = () => {
 
             const row = [
               {name: vacancy.name || 'Н/Д', width: '250px'},
-              {name: vacancy.department || 'Н/Д', width: '400px'},
-              {name: (vacancy.responses || 0).toString(), width: '210px'},
-              {name: (vacancy.responsesWithout || 0).toString(), width: '210px'},
+              {name: vacancy.region || 'Н/Д', width: '400px'},
+              {name: (vacancy.responces || 0).toString(), width: '210px'},
+              {name: `${vacancy.salaryMin || 0} - ${vacancy.salaryMax || 0}`, width: '210px'},
               {name: getStatusText(vacancy.status), width: '130px'},
             ];
 
@@ -117,12 +122,10 @@ const HomePage = () => {
     switch (status) {
       case 'active':
         return 'Активная';
-      case 'hold':
-        return 'На паузе';
-      case 'found':
-        return 'Найдена';
-      case 'approve':
-        return 'Одобрена';
+      case 'closed':
+        return 'Закрыта';
+      case 'stopped':
+        return 'Остановлена';
       default:
         return 'Неизвестно';
     }

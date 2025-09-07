@@ -9,47 +9,7 @@ const ApplicantHomePage = () => {
   const {user} = useStore();
 
   // Данные о последних откликах кандидата
-  const recentApplications = [
-    {
-      vacancyId: 2,
-      name: 'Frontend разработчик',
-      department: 'Отдел разработки',
-      status: 'pending',
-      region: 'Санкт-Петербург',
-      busyType: 'allTime',
-      hr: {
-        name: 'Михаил Соколов',
-        contact: 'mikhail.sokolov@vtb.ru',
-      },
-      applicationDate: '2024-01-20',
-    },
-    {
-      vacancyId: 3,
-      name: 'UX/UI дизайнер',
-      department: 'Отдел дизайна',
-      status: 'approved',
-      region: 'Москва',
-      busyType: 'projectTime',
-      hr: {
-        name: 'Елена Волкова',
-        contact: 'elena.volkova@vtb.ru',
-      },
-      applicationDate: '2024-01-18',
-    },
-    {
-      vacancyId: 4,
-      name: 'Product Manager',
-      department: 'Отдел продуктов',
-      status: 'reviewed',
-      region: 'Москва',
-      busyType: 'allTime',
-      hr: {
-        name: 'Дмитрий Морозов',
-        contact: 'dmitry.morozov@vtb.ru',
-      },
-      applicationDate: '2024-01-15',
-    },
-  ];
+  const recentApplications = [];
 
   return (
     <div className='flex flex-col gap-[20px]'>
