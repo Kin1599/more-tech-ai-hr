@@ -8,6 +8,7 @@ import RegisterPage from '../Pages/RegisterPage';
 import VacancyPage from '../Pages/VacancyPage';
 import VacancyApplicantPage from '../Pages/vacancyApplicantPage';
 import ApplicantHomePage from '../Pages/ApplicantHomePage';
+import ApplicantVacancyPage from '../Pages/ApplicantVacancyPage';
 import NotFoundPage from '../Pages/NotFoundPage';
 
 import {Navigate} from 'react-router-dom';
@@ -123,6 +124,14 @@ const Routing = () => {
             element={
               <ApplicantRoute>
                 <ApplicantHomePage />
+              </ApplicantRoute>
+            }
+          />
+          <Route
+            path='/applicant/:vacancyId'
+            element={
+              <ApplicantRoute>
+                <ApplicantVacancyPage />
               </ApplicantRoute>
             }
           />
