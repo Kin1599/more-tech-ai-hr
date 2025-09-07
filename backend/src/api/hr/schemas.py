@@ -1,64 +1,64 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from enum import Enum
 
 class VacancyStatusEnum(str, Enum):
-    hold = "hold"
-    found = "found"
-    approve = "approve"
+    active = "active"
+    closed = "closed"
+    stopped = "stopped"
 
-class ApplicationStatusEnum(str, Enum):
-    review = "review"
-    screening = "screening"
-    result = "result"
-    reject = "reject"
-    approve = "approve"
+class VacancyStatusUpdateRequest(BaseModel):
+    status: VacancyStatusEnum
+
+class VacancyStatusUpdateResponse(BaseModel):
+    status: VacancyStatusEnum
+
+class ApplicantStatusEnum(str, Enum):
+    rejected = "rejected"
+    cvReview = "cvReview"
+    interview = "interview"
+    waitResult = "waitResult"
+    approved = "approved"
 
 class VacancyResponse(BaseModel):
     vacancyId: int
     name: str
     status: VacancyStatusEnum
     department: str
-    responses: int
-    responsesWithout: int
     date: datetime
 
+    responses: int = 0
+    responsesWithout: int = 0
+    
+    region: Optional[str] = None
+    city: Optional[str] = None
+    address: Optional[str] = None
+    offerType: Optional[str] = None
+    busyType: Optional[str] = None
+    graph: Optional[str] = None
+    salaryMin: Optional[float] = None
+    salaryMax: Optional[float] = None
+    annualBonus: Optional[float] = None
+    bonusType: Optional[str] = None
+    description: Optional[str] = None
+    promt: Optional[str] = None
+    exp: Optional[int] = None
+    degree: Optional[bool] = None
+    specialSoftware: Optional[str] = None
+    computerSkills: Optional[str] = None
+    foreignLanguages: Optional[str] = None
+    languageLevel: Optional[str] = None
+    businessTrips: Optional[bool] = None
+
     model_config = ConfigDict(from_attributes=True)
 
-class ApplicationResponse(BaseModel):
+class VacancyDetailApplicant(BaseModel):
     applicantId: int
     name: str
-    status: ApplicationStatusEnum
-    soft: Optional[float] = None
-    tech: Optional[float] = None
-    salary: Optional[float] = None
-    contacts: str
-    sumGrade: Optional[float] = None
+    score: float
+    status: ApplicantStatusEnum
+    checked: Optional[bool] = False
 
-    model_config = ConfigDict(from_attributes=True)
-
-class ApplicantDetailResponse(BaseModel):
-    name: str
-    surname: str
-    patronymic: str
-    status: ApplicationStatusEnum
-    soft: Optional[float] = None
-    tech: Optional[float] = None
-    salary: Optional[float] = None
-    contacts: str
-    sumGrade: Optional[float] = None
-    cv: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-class EventRequest(BaseModel):
-    reqType: str  # "reject" | "next"
-
-class EventResponse(BaseModel):
-    status: ApplicationStatusEnum
-
-class ApplicantSummaryResponse(BaseModel):
-    summary: str
-
-    model_config = ConfigDict(from_attributes=True)
+class VacancyDetailResponse(VacancyResponse):
+    detailResponces: List[VacancyDetailApplicant]

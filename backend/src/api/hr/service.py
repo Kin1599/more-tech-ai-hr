@@ -1,72 +1,140 @@
-from sqlalchemy.orm import Session
-from ...models.models import Vacancy, Application, ApplicantProfile, ApplicationEvent
-from .utils import format_datetime, calculate_sum_grade
+from datetime import datetime
+from sqlalchemy import desc
+from sqlalchemy.orm import Session, joinedload
 
-def get_vacancies(db: Session):
-    """Получает список всех вакансий с количеством откликов."""
-    vacancies = db.query(Vacancy).all()
-    return [
-        {
-            "vacancyId": v.id,
-            "name": v.name,
-            "status": v.status,
-            "department": v.department,
-            "responses": len(v.applications),
-            "responsesWithout": len([a for a in v.applications if a.status == "review"]),
-            "date": format_datetime(v.date)
-        }
-        for v in vacancies
-    ]
+from .helpers import _apply_mapped_to_vacancy, _map_application_status, _vacancy_to_response
+from ...models.models import HRProfile, User, Vacancy, Application
+from .utils import parse_vacancy_docx, to_decimal, vacancy_to_txt
 
-def get_vacancy_applications(db: Session, vacancy_id: int):
-    """Получает список заявок для указанной вакансии."""
-    applications = db.query(Application).filter_by(vacancy_id=vacancy_id).all()
-    return [
-        {
-            "applicantId": a.applicant_id,
-            "name": a.applicant_profile.name,
-            "status": a.status,
-            "soft": float(a.soft) if a.soft else None,
-            "tech": float(a.tech) if a.tech else None,
-            "salary": float(a.salary) if a.salary else None,
-            "contacts": a.contacts,
-            "sumGrade": calculate_sum_grade(a.soft, a.tech)
-        }
-        for a in applications
-    ]
 
-def get_applicant_details(db: Session, vacancy_id: int, applicant_id: int):
-    """Получает детали соискателя для указанной вакансии и заявки."""
-    application = db.query(Application).filter_by(vacancy_id=vacancy_id, applicant_id=applicant_id).first()
-    if not application:
-        return None
-    applicant = application.applicant_profile
-    return {
-        "name": applicant.name,
-        "surname": applicant.surname,
-        "patronymic": applicant.patronymic,
-        "status": application.status,
-        "soft": float(application.soft) if application.soft else None,
-        "tech": float(application.tech) if application.tech else None,
-        "salary": float(application.salary) if application.salary else None,
-        "contacts": application.contacts,
-        "sumGrade": calculate_sum_grade(application.soft, application.tech),
-        "cv": applicant.cv
-    }
 
-def update_application_event(db: Session, applicant_id: int, req_type: str):
-    """Обновляет статус заявки на основе типа запроса."""
-    application = db.query(Application).filter_by(applicant_id=applicant_id).first()
-    if not application:
-        return None
-    event = ApplicationEvent(application_id=application.id, reqType=req_type, status=application.status)
-    db.add(event)
+def get_vacancies(db: Session, offset: int = 0, limit: int = 20):
+    vacancies = (
+        db.query(Vacancy)
+          .order_by(desc(Vacancy.date), desc(Vacancy.id))
+          .offset(offset)
+          .limit(limit)
+          .all()
+    )
+    return [_vacancy_to_response(v) for v in vacancies]
+
+
+
+def create_vacancy(db: Session, current_user: User, file):
+    hr_profile: HRProfile | None = getattr(current_user, "hr_profile", None)
+    if not hr_profile or not hr_profile.id:
+        raise ValueError("У пользователя нет HR-профиля. Невозможно создать вакансию.")
+
+    raw_fields: dict = parse_vacancy_docx(file)
+    mapped = vacancy_to_txt(raw_fields, as_text=False)
+
+    now_dt = datetime.now()
+    vacancy = Vacancy(
+        hr_id=hr_profile.id,
+        department=hr_profile.department or "",
+        # дефолты как при создании
+        name="",
+        status="active",
+        date=now_dt,
+        region="",
+        city="",
+        address="",
+        offerType="TK",
+        busyType="allTime",
+        graph="",
+        salaryMin=to_decimal(0),
+        salaryMax=to_decimal(0),
+        annualBonus=to_decimal(0),
+        bonusType="",
+        description="",
+        promt="",
+        exp=0,
+        degree=False,
+        specialSoftware="",
+        computerSkills="",
+        foreignLanguages="",
+        languageLevel="",
+        businessTrips=False,
+    )
+
+    # применяем единый маппинг
+    _apply_mapped_to_vacancy(vacancy, mapped)
+
+    db.add(vacancy)
     db.commit()
-    return {"status": application.status}
+    db.refresh(vacancy)
 
-def get_applicant_summary(db: Session, applicant_id: int):
-    """Получает сводку соискателя."""
-    applicant = db.query(ApplicantProfile).filter_by(id=applicant_id).first()
-    if not applicant:
-        return None
-    return {"summary": applicant.summary}
+    return _vacancy_to_response(vacancy)
+
+
+
+def change_vacancy(db: Session, vacancy_id: int, file):
+    v = db.get(Vacancy, vacancy_id)
+    if not v:
+        raise FileNotFoundError("vacancy not found")
+
+    raw_fields: dict = parse_vacancy_docx(file)
+    mapped = vacancy_to_txt(raw_fields, as_text=False)
+
+    _apply_mapped_to_vacancy(v, mapped)
+
+    db.add(v)
+    db.commit()
+    db.refresh(v)
+
+    return _vacancy_to_response(v)
+
+
+
+def change_vacancy_status(db: Session, vacancy_id: int, new_status: str):
+    v = db.get(Vacancy, vacancy_id)
+    if not v:
+        raise FileNotFoundError("vacancy not found")
+
+    v.status = new_status
+    db.add(v)
+    db.commit()
+    db.refresh(v)
+
+    return {"status": v.status}
+
+
+
+def get_vacancy_detail(db: Session, vacancy_id: int) -> dict:
+    v = (
+        db.query(Vacancy)
+          .options(
+              joinedload(Vacancy.applications).joinedload(Application.applicant_profile),
+              joinedload(Vacancy.applications).joinedload(Application.meetings), 
+          )
+          .filter(Vacancy.id == vacancy_id)
+          .first()
+    )
+    if not v:
+        raise FileNotFoundError("vacancy not found")
+
+    base = _vacancy_to_response(v)
+
+    detail = []
+    for app in (v.applications or []):
+        prof = getattr(app, "applicant_profile", None)
+        full_name = " ".join(filter(None, [
+            getattr(prof, "name", None),
+            getattr(prof, "surname", None),
+        ])).strip() or "Кандидат"
+
+        try:
+            score = float(app.sumGrade) if app.sumGrade is not None else float(app.soft or 0) + float(app.tech or 0)
+        except Exception:
+            score = 0.0
+
+        detail.append({
+            "applicantId": getattr(app, "applicant_id", None),
+            "name": full_name,
+            "score": score,
+            "status": _map_application_status(app),
+            "checked": False,
+        })
+
+    base["detailResponces"] = detail
+    return base
