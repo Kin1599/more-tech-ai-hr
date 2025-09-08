@@ -45,6 +45,7 @@ const ResponsesTable = ({responses, vacancyId}) => {
     {name: 'Кандидат', width: '400px'},
     {name: 'Оценка резюме', width: '200px'},
     {name: 'Статус', width: '200px'},
+    {name: 'Проверен', width: '150px'},
   ];
 
   if (!responses || responses.length === 0) {
@@ -76,12 +77,12 @@ const ResponsesTable = ({responses, vacancyId}) => {
                 <AvatarImage alt='user' />
                 <AvatarFallback>u</AvatarFallback>
               </Avatar>
-              {response.name}
+              {response.name?.charAt(0).toUpperCase() + response.name?.slice(1).toLowerCase()}
             </div>
 
             {/* Оценка резюме */}
             <div style={{width: '200px'}} className='text-center truncate'>
-              {response.score}/100
+              {response.score?.toFixed(2)}/100
             </div>
 
             {/* Статус */}
@@ -94,6 +95,17 @@ const ResponsesTable = ({responses, vacancyId}) => {
               <div className='hidden group-hover:flex items-center gap-[10px]'>
                 Перейти <img src={arrowIcon} alt='Перейти' className='w-[30px] h-[30px]'></img>
               </div>
+            </div>
+
+            {/* Проверен */}
+            <div style={{width: '150px'}} className='text-center truncate'>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  response.checked ? 'text-green-600 bg-green-100' : 'text-gray-600 bg-gray-100'
+                }`}
+              >
+                {response.checked ? 'Да' : 'Нет'}
+              </span>
             </div>
           </Link>
         ))}

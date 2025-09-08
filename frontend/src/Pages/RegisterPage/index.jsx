@@ -3,7 +3,7 @@ import {Link, useNavigate} from 'react-router-dom';
 import {Button} from '../../components/ui/button';
 import {Input} from '../../components/ui/input';
 import {Label} from '../../components/ui/label';
-import {useStore} from '../../App/Store';
+import {useStore} from '../../App/store';
 import logo from '../../Shared/imgs/logo.svg';
 
 const RegisterPage = () => {
@@ -64,17 +64,39 @@ const RegisterPage = () => {
     setLoading(true);
 
     try {
+      console.log('Проверяем localStorage перед регистрацией:', localStorage.getItem('redirectAfterLogin'));
       const result = await register(email, password, resumeFile);
+      console.log('Проверяем localStorage после регистрации:', localStorage.getItem('redirectAfterLogin'));
 
       if (result.success) {
         // Успешная регистрация - проверяем сохраненный URL
         const savedUrl = localStorage.getItem('redirectAfterLogin');
+        console.log('Сохраненный URL:', savedUrl);
+        console.log('Полный результат регистрации:', result);
+        console.log('Роль пользователя из result.data:', result.data?.role);
+        console.log('Роль пользователя из result.user:', result.user?.role);
+
         if (savedUrl) {
+          console.log('Перенаправляем на сохраненный URL:', savedUrl);
           // Перенаправляем на сохраненный URL
           navigate(savedUrl);
+          // Очищаем сохраненный URL ПОСЛЕ навигации
+          setTimeout(() => {
+            localStorage.removeItem('redirectAfterLogin');
+          }, 100);
         } else {
-          // Перенаправляем на главную страницу
-          navigate('/');
+          // Перенаправляем на главную страницу в зависимости от роли
+          const userRole = result.data?.role || result.user?.role;
+          if (userRole === 'hr') {
+            console.log('Перенаправляем HR на /hr');
+            navigate('/hr');
+          } else if (userRole === 'applicant') {
+            console.log('Перенаправляем кандидата на /applicant');
+            navigate('/applicant');
+          } else {
+            console.log('Перенаправляем на главную страницу');
+            navigate('/');
+          }
         }
       } else {
         setError(result.error);

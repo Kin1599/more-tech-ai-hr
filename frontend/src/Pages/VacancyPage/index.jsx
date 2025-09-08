@@ -1,16 +1,17 @@
 import React, {useState, useRef, useEffect} from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
-import {useStore} from '../../App/Store';
+import {useStore} from '../../App/store';
 import {Button} from '../../components/ui/button';
 import StatusDropdown from './components/StatusDropdown';
 import ResponsesTable from './components/ResponsesTable';
 import vtbLogo from '../../Shared/imgs/vtb.png';
 import editIcon from '../../Shared/imgs/edit-3.svg';
+import {capitalizeFirst} from '../../lib/utils';
 
 const VacancyPage = () => {
   const {id} = useParams();
   const navigate = useNavigate();
-  const {vacancies, updateVacancy, uploadCV, fetchVacancy, changeVacancyStatus} = useStore();
+  const {updateVacancy, uploadCV, fetchHRVacancy, changeVacancyStatus} = useStore();
   const fileInputRef = useRef(null);
 
   // Проверяем, создаем ли новую вакансию
@@ -21,7 +22,7 @@ const VacancyPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Получаем отклики из данных вакансии
-  const vacancyResponses = vacancy?.detailResponces || [];
+  const vacancyResponses = vacancy?.detailResponses || [];
 
   // Состояние редактирования - для новой вакансии сразу в режиме редактирования
   const [isEditing] = useState(isNewVacancy);
@@ -29,24 +30,21 @@ const VacancyPage = () => {
   // Состояние для дропдауна описания
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
 
+  // Состояние для уведомления о копировании
+  const [linkCopied, setLinkCopied] = useState(false);
+
   // Загружаем вакансию при монтировании компонента
   useEffect(() => {
     if (id && !isNewVacancy) {
       const loadVacancy = async () => {
         setIsLoading(true);
         try {
-          // Сначала ищем в store
-          const existingVacancy = vacancies.find((v) => v.vacancyId === parseInt(id));
-          if (existingVacancy) {
-            setVacancy(existingVacancy);
-          } else {
-            // Если не найдена в store, загружаем с API
-            const result = await fetchVacancy(parseInt(id));
-            if (result.success) {
-              setVacancy(result.data);
-              // Обновляем вакансию в store
-              updateVacancy(parseInt(id), result.data);
-            }
+          // Загружаем HR вакансию с деталями
+          const result = await fetchHRVacancy(parseInt(id));
+          if (result.success) {
+            setVacancy(result.data);
+            // Обновляем вакансию в store
+            updateVacancy(parseInt(id), result.data);
           }
         } catch (error) {
           console.error('Ошибка при загрузке вакансии:', error);
@@ -56,7 +54,7 @@ const VacancyPage = () => {
       };
       loadVacancy();
     }
-  }, [id, isNewVacancy, fetchVacancy, updateVacancy, vacancies]);
+  }, [id, isNewVacancy, fetchHRVacancy, updateVacancy]);
 
   // Функция для загрузки файла
   const handleFileUpload = () => {
@@ -118,6 +116,30 @@ const VacancyPage = () => {
     handleFileUpload();
   };
 
+  // Функция для копирования ссылки на вакансию
+  const copyVacancyLink = async () => {
+    if (!vacancy?.vacancyId) return;
+
+    const link = `http://localhost:5173/applicant/${vacancy.vacancyId}`;
+
+    try {
+      await navigator.clipboard.writeText(link);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 3000); // Скрываем уведомление через 3 секунды
+    } catch (error) {
+      console.error('Ошибка при копировании ссылки:', error);
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea');
+      textArea.value = link;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 3000);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className='flex flex-col items-center justify-center min-h-[400px]'>
@@ -167,9 +189,25 @@ const VacancyPage = () => {
             placeholder='Название вакансии'
           />
         ) : ( */}
-        <div className='text-[30px] font-semibold'>{isNewVacancy ? 'Новая вакансия' : vacancy?.name || 'Вакансия'}</div>
+        <div className='text-[30px] font-semibold'>
+          {isNewVacancy ? 'Новая вакансия' : capitalizeFirst(vacancy?.name) || 'Вакансия'}
+        </div>
         {/* )} */}
         <div className='flex gap-[20px]'>
+          <Button
+            onClick={copyVacancyLink}
+            className='bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-[10px] p-[10px] pr-[16px] pl-[16px] text-[16px] text-white hover:text-white'
+          >
+            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z'
+              />
+            </svg>
+            {linkCopied ? 'Скопировано!' : 'Скопировать ссылку'}
+          </Button>
           <Button
             onClick={handleEdit}
             className='bg-[#303030] hover:bg-[#eb5e28] hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-[10px] p-[10px] pr-[16px] pl-[16px] text-[16px] text-white hover:text-white'
@@ -194,15 +232,35 @@ const VacancyPage = () => {
           </div>
           <div className='text-[20px] flex items-center gap-2'>
             <span className='font-semibold'>Локация:</span>
-            <span>{` ${vacancy?.city || ''}, ${vacancy?.address || ''}`}</span>
+            <span>{` ${capitalizeFirst(vacancy?.city) || ''}, ${capitalizeFirst(vacancy?.region) || ''}`}</span>
           </div>
           <div className='text-[20px] flex items-center gap-2'>
-            <span className='font-semibold'>Тип занятости:</span>
-            <span>{` ${vacancy?.busyType || ''}`}</span>
+            <span className='font-semibold'>Адрес:</span>
+            <span>{` ${vacancy?.address || ''}`}</span>
+          </div>
+          <div className='text-[20px] flex items-center gap-2'>
+            <span className='font-semibold'>Тип договора:</span>
+            <span>{` ${vacancy?.offerType || ''}`}</span>
           </div>
           <div className='text-[20px] flex items-center gap-2'>
             <span className='font-semibold'>График:</span>
             <span>{` ${vacancy?.graph || ''}`}</span>
+          </div>
+          <div className='text-[20px] flex items-center gap-2'>
+            <span className='font-semibold'>Годовой бонус:</span>
+            <span>{` ${vacancy?.annualBonus || 0} рублей`}</span>
+          </div>
+          <div className='text-[20px] flex items-center gap-2'>
+            <span className='font-semibold'>Тип бонуса:</span>
+            <span>{` ${vacancy?.bonusType || ''}`}</span>
+          </div>
+          <div className='text-[20px] flex items-center gap-2'>
+            <span className='font-semibold'>Образование:</span>
+            <span>{` ${vacancy?.degree ? 'Высшее' : 'Не требуется'}`}</span>
+          </div>
+          <div className='text-[20px] flex items-center gap-2'>
+            <span className='font-semibold'>Командировки:</span>
+            <span>{` ${vacancy?.businessTrips ? 'Да' : 'Нет'}`}</span>
           </div>
           <div className='text-[20px] flex items-center gap-2'>
             <span className='font-semibold'>Откликов:</span>
@@ -242,6 +300,7 @@ const VacancyPage = () => {
           </div>
         </div>
       )}
+
       {!isEditing && (
         <>
           <div className='text-[24px] font-semibold'>Отклики:</div>

@@ -1,8 +1,8 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {Outlet, useNavigate, useLocation} from 'react-router-dom';
 import styles from './Layout.module.css';
 import {Avatar, AvatarImage, AvatarFallback} from '../components/ui/avatar';
-import {useStore} from '../App/Store';
+import {useStore} from '../App/store';
 import logoIcon from './imgs/logo.svg';
 import logoutIcon from './imgs/log-out.svg';
 
@@ -20,6 +20,22 @@ const Layout = () => {
 
   // Проверяем, находимся ли мы на страницах логина или регистрации
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+  // Сохраняем URL для редиректа после логина, если пользователь не авторизован
+  useEffect(() => {
+    console.log('Layout useEffect - user:', user, 'isAuthPage:', isAuthPage, 'pathname:', location.pathname);
+
+    if (!user && !isAuthPage) {
+      // Сохраняем текущий URL для редиректа после логина
+      const urlToSave = location.pathname + location.search;
+      // Проверяем, что это страница кандидата
+      if (urlToSave.startsWith('/applicant/')) {
+        localStorage.setItem('redirectAfterLogin', urlToSave);
+        console.log('Сохраняем URL для редиректа:', urlToSave);
+        console.log('Проверяем localStorage:', localStorage.getItem('redirectAfterLogin'));
+      }
+    }
+  }, [user, isAuthPage, location.pathname, location.search]);
 
   // Если это страница авторизации, показываем только контент без навигации
   if (isAuthPage) {

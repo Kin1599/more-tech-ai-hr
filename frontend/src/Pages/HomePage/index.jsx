@@ -120,7 +120,10 @@ const HomePage = () => {
             }
 
             const row = [
-              {name: vacancy.name || 'Н/Д', width: '250px'},
+              {
+                name: vacancy.name ? vacancy.name.charAt(0).toUpperCase() + vacancy.name.slice(1).toLowerCase() : 'Н/Д',
+                width: '250px',
+              },
               {name: vacancy.region || 'Н/Д', width: '400px'},
               {name: (vacancy.responces || 0).toString(), width: '210px'},
               {name: `${vacancy.salaryMin || 0} - ${vacancy.salaryMax || 0}`, width: '210px'},

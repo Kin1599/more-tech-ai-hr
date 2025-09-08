@@ -4,40 +4,41 @@ import {Button} from '../../components/ui/button';
 import {Badge} from '../../components/ui/badge';
 import {Card, CardContent, CardHeader, CardTitle} from '../../components/ui/card';
 import {Separator} from '../../components/ui/separator';
-import {useStore} from '../../App/Store';
+import {useStore} from '../../App/store';
 
 const VacancyApplicantPage = () => {
   const {vacancyId, candidateId} = useParams();
   const navigate = useNavigate();
-  const {vacancies} = useStore();
+  const {vacancies, fetchHRApplicant} = useStore();
 
   const [applicant, setApplicant] = useState(null);
   const [vacancy, setVacancy] = useState(null);
-  const [expandedSections, setExpandedSections] = useState({
-    summary: false,
-    recommendations: false,
-    risks: false,
-  });
 
   const interview = applicant?.interview;
   const cv = applicant?.cv;
 
-  // Функция для переключения аккордеона
-  const toggleSection = (section) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
-
   useEffect(() => {
-    // Находим вакансию
-    const foundVacancy = vacancies.find((v) => v.vacancyId === parseInt(vacancyId));
-    setVacancy(foundVacancy);
+    const loadData = async () => {
+      // Находим вакансию
+      const foundVacancy = vacancies.find((v) => v.vacancyId === parseInt(vacancyId));
+      setVacancy(foundVacancy);
 
-    // Пока кандидаты не реализованы - используем null
-    setApplicant(null);
-  }, [vacancyId, candidateId, vacancies]);
+      // Загружаем данные кандидата
+      if (candidateId && vacancyId) {
+        try {
+          const result = await fetchHRApplicant(parseInt(candidateId), parseInt(vacancyId));
+          if (result.success) {
+            setApplicant(result.data);
+          } else {
+            console.error('Ошибка при загрузке кандидата:', result.error);
+          }
+        } catch (error) {
+          console.error('Ошибка при загрузке кандидата:', error);
+        }
+      }
+    };
+    loadData();
+  }, [vacancyId, candidateId, vacancies, fetchHRApplicant]);
 
   // Функция для отображения статуса
   const getStatusText = (status) => {
@@ -57,35 +58,52 @@ const VacancyApplicantPage = () => {
     }
   };
 
+  // Функция для получения цвета статуса
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'rejected':
+        return 'text-red-600 bg-red-100 border-red-200';
+      case 'cvReview':
+        return 'text-yellow-600 bg-yellow-100 border-yellow-200';
+      case 'interview':
+        return 'text-blue-600 bg-blue-100 border-blue-200';
+      case 'waitResult':
+        return 'text-purple-600 bg-purple-100 border-purple-200';
+      case 'aproved':
+        return 'text-green-600 bg-green-100 border-green-200';
+      default:
+        return 'text-gray-600 bg-gray-100 border-gray-200';
+    }
+  };
+
   // Функция для отображения вердикта интервью
   const getVerdictText = (verdict) => {
     switch (verdict) {
       case 'strong_hire':
-        return 'Сильно рекомендован к найму';
+        return 'Сильная рекомендация к найму';
       case 'hire':
-        return 'Рекомендован к найму';
-      case 'borderline':
-        return 'Пограничный случай';
+        return 'Рекомендация к найму';
       case 'no_hire':
-        return 'Не рекомендован к найму';
+        return 'Не рекомендуется к найму';
+      case 'strong_no_hire':
+        return 'Категорически не рекомендуется к найму';
       default:
-        return 'Не определен';
+        return 'Не определено';
     }
   };
 
-  // Функция для получения цвета вердикта
   const getVerdictColor = (verdict) => {
     switch (verdict) {
       case 'strong_hire':
-        return 'bg-green-100 text-green-800';
+        return 'text-green-600 bg-green-100';
       case 'hire':
-        return 'bg-blue-100 text-blue-800';
-      case 'borderline':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'text-green-600 bg-green-100';
       case 'no_hire':
-        return 'bg-red-100 text-red-800';
+        return 'text-red-600 bg-red-100';
+      case 'strong_no_hire':
+        return 'text-red-600 bg-red-100';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'text-gray-600 bg-gray-100';
     }
   };
 
@@ -115,154 +133,146 @@ const VacancyApplicantPage = () => {
       </div>
 
       <div className='flex justify-between items-center'>
-        <div className='text-[30px] font-bold'>{applicant.candidateName}</div>
-        {applicant.verdict && (
-          <Badge className={`px-4 py-2 text-lg font-medium ${getVerdictColor(applicant.verdict)}`}>
-            {getVerdictText(applicant.verdict)}
+        <div className='text-[30px] font-bold'>Кандидат #{candidateId}</div>
+        <div className='flex items-center gap-3'>
+          <Badge className={`px-4 py-2 text-sm font-medium border shadow-sm ${getStatusColor(applicant.status)}`}>
+            {getStatusText(applicant.status)}
           </Badge>
-        )}
+          {interview?.verdict && (
+            <Badge className={`px-4 py-2 text-sm font-medium border shadow-sm ${getVerdictColor(interview.verdict)}`}>
+              {getVerdictText(interview.verdict)}
+            </Badge>
+          )}
+        </div>
       </div>
-
-      <div className='text-[16px]'>
-        <span className='font-bold'>Статус: </span>
-        <span>{getStatusText(applicant.status)}</span>
-      </div>
-      <div className='text-[16px]'>
-        <span className='font-bold'>Общая оценка резюме: </span>
-        <span>{applicant.cvScore} баллов</span>
-      </div>
-      {cv?.strengths && (
-        <div className='text-[16px]'>
-          <span className='font-bold'>Сильные стороны резьюме: </span>
-          {cv?.strengths.map((strength, index) => (
-            <span key={strength}>
-              {strength}
-              {index !== cv?.strengths.length - 1 ? ', ' : ''}
-            </span>
-          ))}
-        </div>
-      )}
-      {cv?.weaknesses && (
-        <div className='text-[16px]'>
-          <span className='font-bold'>Слабые стороны резьюме: </span>
-          {cv?.weaknesses.map((weakness, index) => (
-            <span key={weakness}>
-              {weakness}
-              {index !== cv?.weaknesses.length - 1 ? ', ' : ''}
-            </span>
-          ))}
-        </div>
-      )}
-      {interview?.strengths && (
-        <div className='text-[16px]'>
-          <span className='font-bold'>Сильные стороны интервью: </span>
-          {interview?.strengths.map((strength, index) => (
-            <span key={strength}>
-              {strength}
-              {index !== interview?.strengths.length - 1 ? ', ' : ''}
-            </span>
-          ))}
-        </div>
-      )}
-      {interview?.weaknesses && (
-        <div className='text-[16px]'>
-          <span className='font-bold'>Слабые стороны интервью: </span>
-          {interview?.weaknesses.map((weakness, index) => (
-            <span key={weakness}>
-              {weakness}
-              {index !== interview?.weaknesses.length - 1 ? ', ' : ''}
-            </span>
-          ))}
-        </div>
-      )}
-      {interview?.summary && (
-        <div>
-          <div
-            className='flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors duration-200 p-4 rounded-lg border border-gray-200'
-            onClick={() => toggleSection('summary')}
-          >
-            <h3 className='text-[24px] font-semibold'>Выдержка из интервью</h3>
-            <div
-              className={`transform transition-transform duration-300 ease-in-out ${expandedSections.summary ? 'rotate-180' : 'rotate-0'}`}
-            >
-              <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
-              </svg>
-            </div>
-          </div>
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              expandedSections.summary ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-            }`}
-          >
-            <Card className='mt-2'>
-              <CardContent className='p-4'>
-                <p className='text-gray-700'>{interview.summary}</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {interview?.recommendations && (
-        <div>
-          <div
-            className='flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors duration-200 p-4 rounded-lg border border-gray-200'
-            onClick={() => toggleSection('recommendations')}
-          >
-            <h3 className='text-[24px] font-semibold'>Рекомендации</h3>
-            <div
-              className={`transform transition-transform duration-300 ease-in-out ${expandedSections.recommendations ? 'rotate-180' : 'rotate-0'}`}
-            >
-              <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
-              </svg>
-            </div>
-          </div>
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              expandedSections.recommendations ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-            }`}
-          >
-            <Card className='mt-2'>
-              <CardContent className='p-4'>
-                <p className='text-gray-700'>{interview.recommendations}</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      {interview?.risk_notes && interview.risk_notes.length > 0 && (
-        <div>
-          <div
-            className='flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors duration-200 p-4 rounded-lg border border-gray-200'
-            onClick={() => toggleSection('risks')}
-          >
-            <h3 className='text-[24px] font-semibold'>Риски</h3>
-            <div
-              className={`transform transition-transform duration-300 ease-in-out ${expandedSections.risks ? 'rotate-180' : 'rotate-0'}`}
-            >
-              <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
-              </svg>
-            </div>
-          </div>
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              expandedSections.risks ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-            }`}
-          >
-            <Card className='mt-2'>
-              <CardContent className='p-4 space-y-2'>
-                {interview.risk_notes.map((risk, index) => (
-                  <div key={index} className='p-3 bg-orange-50 border-l-4 border-orange-400 rounded'>
-                    <p className='text-gray-700'>{risk}</p>
+      {cv && cv.length > 0 && (
+        <div className='space-y-4'>
+          <h3 className='text-[20px] font-semibold'>Анализ резюме</h3>
+          {cv.map((cvItem, index) => (
+            <Card key={index}>
+              <CardHeader>
+                <CardTitle className='text-[18px]'>{cvItem.name}</CardTitle>
+              </CardHeader>
+              <CardContent className='space-y-3'>
+                <div className='text-[16px]'>
+                  <span className='font-bold'>Оценка: </span>
+                  <span className='text-blue-600 font-semibold'>{cvItem.score.toFixed(2)}/100</span>
+                </div>
+                {cvItem.strengths && cvItem.strengths.length > 0 && (
+                  <div>
+                    <div className='font-bold text-green-600 mb-2'>Сильные стороны:</div>
+                    <ul className='list-disc list-inside space-y-1'>
+                      {cvItem.strengths.map((strength, idx) => (
+                        <li key={idx} className='text-[14px]'>
+                          {strength}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ))}
+                )}
+                {cvItem.weaknesses && cvItem.weaknesses.length > 0 && (
+                  <div>
+                    <div className='font-bold text-red-600 mb-2'>Слабые стороны:</div>
+                    <ul className='list-disc list-inside space-y-1'>
+                      {cvItem.weaknesses.map((weakness, idx) => (
+                        <li key={idx} className='text-[14px]'>
+                          {weakness}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </div>
+          ))}
+        </div>
+      )}
+      {interview && (
+        <div className='space-y-4'>
+          <h3 className='text-[20px] font-semibold'>Результаты интервью</h3>
+          <Card>
+            <CardHeader>
+              <CardTitle className='text-[18px]'>Общая информация</CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-4'>
+              {interview.summary && (
+                <div>
+                  <div className='font-bold text-gray-700 mb-2'>Краткое резюме:</div>
+                  <p className='text-[14px] text-gray-600 leading-relaxed'>{interview.summary}</p>
+                </div>
+              )}
+              {interview.verdict && (
+                <div>
+                  <div className='font-bold text-gray-700 mb-2'>Вердикт:</div>
+                  <Badge className={`px-3 py-1 text-sm font-medium ${getVerdictColor(interview.verdict)}`}>
+                    {getVerdictText(interview.verdict)}
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {interview.strengths && interview.strengths.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className='text-[18px] text-green-600'>Сильные стороны</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className='list-disc list-inside space-y-1'>
+                  {interview.strengths.map((strength, idx) => (
+                    <li key={idx} className='text-[14px]'>
+                      {strength}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {interview.weaknesses && interview.weaknesses.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className='text-[18px] text-red-600'>Слабые стороны</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className='list-disc list-inside space-y-1'>
+                  {interview.weaknesses.map((weakness, idx) => (
+                    <li key={idx} className='text-[14px]'>
+                      {weakness}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {interview.recommendations && (
+            <Card>
+              <CardHeader>
+                <CardTitle className='text-[18px] text-blue-600'>Рекомендации</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className='text-[14px] text-gray-600 leading-relaxed'>{interview.recommendations}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {interview.risk_notes && interview.risk_notes.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className='text-[18px] text-orange-600'>Заметки о рисках</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className='list-disc list-inside space-y-1'>
+                  {interview.risk_notes.map((risk, idx) => (
+                    <li key={idx} className='text-[14px]'>
+                      {risk}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

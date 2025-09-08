@@ -9,10 +9,11 @@ import VacancyPage from '../Pages/VacancyPage';
 import VacancyApplicantPage from '../Pages/vacancyApplicantPage';
 import ApplicantHomePage from '../Pages/ApplicantHomePage';
 import ApplicantVacancyPage from '../Pages/ApplicantVacancyPage';
+import ApplicationDetailPage from '../Pages/ApplicationDetailPage';
 import NotFoundPage from '../Pages/NotFoundPage';
 
 import {Navigate} from 'react-router-dom';
-import {useStore} from '../App/Store';
+import {useStore} from '../App/store';
 
 // Компонент для сохранения URL перед редиректом на логин
 const URLSaver = ({children}) => {
@@ -155,6 +156,14 @@ const Routing = () => {
             element={
               <ApplicantRoute>
                 <ApplicantVacancyPage />
+              </ApplicantRoute>
+            }
+          />
+          <Route
+            path='/applicant/application/:vacancyId'
+            element={
+              <ApplicantRoute>
+                <ApplicationDetailPage />
               </ApplicantRoute>
             }
           />

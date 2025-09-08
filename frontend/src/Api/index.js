@@ -10,6 +10,18 @@ export const getVacancies = async () => {
   return response.data;
 };
 
+// API функция для получения HR вакансии с деталями
+export const getHRVacancy = async (vacancyId) => {
+  const response = await apiClient.get(`/api/hr/vacancies/${vacancyId}`);
+  return response.data;
+};
+
+// API функция для получения HR кандидата
+export const getHRApplicant = async (applicantId, vacancyId) => {
+  const response = await apiClient.get(`/api/hr/applicants/${applicantId}?vacancy_id=${vacancyId}&applicant_id=${applicantId}`);
+  return response.data;
+};
+
 // API функция для получения конкретной вакансии
 export const getVacancy = async (vacancyId) => {
   const response = await apiClient.get(`/api/hr/vacancies/${vacancyId}`);
@@ -25,8 +37,45 @@ export const updateVacancyStatus = async (vacancyId, status) => {
 };
 
 // API функция для получения откликов апликанта
-export const getApplicantApplications = async (applicantId) => {
-  const response = await apiClient.get(`/api/applicant/${applicantId}`);
+export const getApplicantApplications = async () => {
+  const response = await apiClient.get(`/api/applicant/vacancies`);
+  return response.data;
+};
+
+// API функция для получения конкретной вакансии апликанта
+export const getApplicantVacancy = async (vacancyId) => {
+  const response = await apiClient.get(`/api/applicant/vacancies/${vacancyId}`);
+  return response.data[0];
+};
+
+// API функция для подачи отклика на вакансию
+export const applyToVacancy = async (vacancyId) => {
+  const response = await apiClient.post(`/api/applicant/job_applications/${vacancyId}`);
+  return response.data;
+};
+
+// API функция для получения откликов апликанта
+export const getApplicantJobApplications = async () => {
+  const response = await apiClient.get('/api/applicant/job_applications');
+  return response.data;
+};
+
+// API функция для получения деталей отклика
+export const getApplicantJobApplication = async (vacancyId) => {
+  const response = await apiClient.get(`/api/applicant/job_applications/${vacancyId}`);
+  return response.data;
+};
+
+// API функция для загрузки резюме
+export const uploadResume = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await apiClient.post('/api/user/me/resume', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 

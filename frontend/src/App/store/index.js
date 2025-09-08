@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {getVacancies, getVacancy, updateVacancyStatus, getApplicantApplications, login, register, uploadCV} from '../../Api';
+import {getVacancies, getVacancy, getHRVacancy, getHRApplicant, updateVacancyStatus, getApplicantApplications, getApplicantVacancy, applyToVacancy, getApplicantJobApplications, getApplicantJobApplication, uploadResume, login, register, uploadCV} from '../../Api';
 import {setAuthToken, setStoredToken, removeStoredToken, getStoredToken} from '../../Api/config';
 
 export const useStore = create((set) => {
@@ -45,12 +45,6 @@ export const useStore = create((set) => {
         set({ user: userData });
         localStorage.setItem('user', JSON.stringify(userData));
         
-        // Очищаем сохраненный URL для редиректа (если есть)
-        const savedUrl = localStorage.getItem('redirectAfterLogin');
-        if (savedUrl) {
-          localStorage.removeItem('redirectAfterLogin');
-        }
-        
         return { success: true, user: userData };
       } catch (error) {
         console.error('Ошибка при входе:', error);
@@ -80,12 +74,6 @@ export const useStore = create((set) => {
         set({ user: userData });
         localStorage.setItem('user', JSON.stringify(userData));
         
-        // Очищаем сохраненный URL для редиректа (если есть)
-        const savedUrl = localStorage.getItem('redirectAfterLogin');
-        if (savedUrl) {
-          localStorage.removeItem('redirectAfterLogin');
-        }
-        
         return { success: true, user: userData };
       } catch (error) {
         console.error('Ошибка при регистрации:', error);
@@ -99,6 +87,9 @@ export const useStore = create((set) => {
     
     // Отклики апликанта
     applicantApplications: [],
+    
+    // Отклики на вакансии (job applications)
+    jobApplications: [],
     
     // Функция для загрузки вакансий с API
     fetchVacancies: async () => {
@@ -124,10 +115,38 @@ export const useStore = create((set) => {
       }
     },
     
-    // Функция для загрузки откликов апликанта
-    fetchApplicantApplications: async (applicantId) => {
+    // Функция для загрузки HR вакансии с деталями
+    fetchHRVacancy: async (vacancyId) => {
       try {
-        const applications = await getApplicantApplications(applicantId);
+        const vacancy = await getHRVacancy(vacancyId);
+        return { success: true, data: vacancy };
+      } catch (error) {
+        console.error('Ошибка при загрузке HR вакансии:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при загрузке HR вакансии' 
+        };
+      }
+    },
+    
+    // Функция для загрузки HR кандидата
+    fetchHRApplicant: async (applicantId, vacancyId) => {
+      try {
+        const applicant = await getHRApplicant(applicantId, vacancyId);
+        return { success: true, data: applicant };
+      } catch (error) {
+        console.error('Ошибка при загрузке HR кандидата:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при загрузке HR кандидата' 
+        };
+      }
+    },
+    
+    // Функция для загрузки откликов апликанта
+    fetchApplicantApplications: async () => {
+      try {
+        const applications = await getApplicantApplications();
         set({ applicantApplications: applications });
         return { success: true, data: applications };
       } catch (error) {
@@ -135,6 +154,96 @@ export const useStore = create((set) => {
         return { 
           success: false, 
           error: error.response?.data?.detail || 'Ошибка при загрузке откликов' 
+        };
+      }
+    },
+    
+    // Функция для загрузки конкретной вакансии апликанта
+    fetchApplicantVacancy: async (vacancyId) => {
+      try {
+        const vacancy = await getApplicantVacancy(vacancyId);
+        return { success: true, data: vacancy };
+      } catch (error) {
+        console.error('Ошибка при загрузке вакансии апликанта:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при загрузке вакансии' 
+        };
+      }
+    },
+    
+    // Функция для подачи отклика на вакансию
+    applyToVacancy: async (vacancyId) => {
+      try {
+        const result = await applyToVacancy(vacancyId);
+        
+        // После успешной подачи отклика обновляем список откликов
+        if (result.success) {
+          // Перезагружаем список откликов, чтобы получить актуальные данные
+          const applicationsResult = await getApplicantJobApplications();
+          if (applicationsResult.success) {
+            set({ jobApplications: applicationsResult.data });
+          }
+        }
+        
+        return { success: true, data: result };
+      } catch (error) {
+        console.error('Ошибка при подаче отклика:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при подаче отклика' 
+        };
+      }
+    },
+    
+    // Функция для загрузки откликов апликанта
+    fetchJobApplications: async () => {
+      try {
+        const applications = await getApplicantJobApplications();
+        set({ jobApplications: applications });
+        return { success: true, data: applications };
+      } catch (error) {
+        console.error('Ошибка при загрузке откликов:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при загрузке откликов' 
+        };
+      }
+    },
+    
+    // Функция для получения отфильтрованных вакансий (исключая те, на которые уже подан отклик)
+    getFilteredVacancies: () => {
+      const state = useStore.getState();
+      const appliedVacancyIds = state.jobApplications.map(app => app.vacancyId);
+      return state.applicantApplications.filter(vacancy => 
+        !appliedVacancyIds.includes(vacancy.vacancyId)
+      );
+    },
+    
+    // Функция для загрузки деталей отклика
+    fetchJobApplication: async (vacancyId) => {
+      try {
+        const application = await getApplicantJobApplication(vacancyId);
+        return { success: true, data: application };
+      } catch (error) {
+        console.error('Ошибка при загрузке деталей отклика:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при загрузке деталей отклика' 
+        };
+      }
+    },
+    
+    // Функция для загрузки резюме
+    uploadResume: async (file) => {
+      try {
+        const result = await uploadResume(file);
+        return { success: true, data: result };
+      } catch (error) {
+        console.error('Ошибка при загрузке резюме:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при загрузке резюме' 
         };
       }
     },
