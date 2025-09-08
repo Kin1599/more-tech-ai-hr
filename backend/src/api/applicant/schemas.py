@@ -11,7 +11,7 @@ class JobApplicationStatus(str, Enum):
     interview = "interview"
     waitResult = "waitResult"
     rejected = "rejected"
-    approved = "approved"
+    approved = "approved"    
 
 class HRBrief(BaseModel):
     name: str

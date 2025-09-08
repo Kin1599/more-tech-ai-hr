@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from statistics import mean
 from typing import List
 import PyPDF2
 from docx import Document
@@ -18,8 +19,6 @@ from ...models.models import (
     Meeting,
 )
 from .schemas import JobApplicationListItem, JobApplicationDetail, HRBrief, InterviewLinkResponse, JobApplicationStatus
-from ...ml.cv_estimator import evaluate_cv
-
 
 def _hr_full_name(hr: HRProfile) -> str:
     parts = [hr.name, hr.patronymic, hr.surname]
@@ -188,6 +187,8 @@ def get_interview_link(db: Session, user_id: int, vacancy_id: int) -> InterviewL
 def apply_for_job(db: Session, user_id: int, vacancy_id: int) -> JobApplicationListItem:
     """Отклик на вакансию"""
 
+    from ...ml.cv_estimator import evaluate_cv
+
     applicant_profile = db.query(ApplicantProfile).filter_by(user_id=user_id).first()
     if not applicant_profile:
         raise HTTPException(
@@ -237,16 +238,7 @@ def apply_for_job(db: Session, user_id: int, vacancy_id: int) -> JobApplicationL
     db.add(job_application)
     db.flush()
 
-    application_event = JobApplicationEvent(
-        application_id=job_application.id,
-        reqType="next",
-        status=JobApplicationStatus.cvReview,
-    )
-
-    db.add(application_event)
-    db.flush()
-
-    model = "llama-3.3-70b-versatile"
+    model = "qwen/qwen3-32b"
 
     try:
         resume_text = _extract_text_from_file(resume.storage_path)
@@ -259,20 +251,48 @@ def apply_for_job(db: Session, user_id: int, vacancy_id: int) -> JobApplicationL
             api_key=os.getenv("GROQ_API_KEY"),
             model=model,
         )
-
-        for crit in evaluation["criteria"]:
+        
+        if evaluation.get("parse_error", False):
             cv_evaluation = JobApplicationCVEvaluation(
                 job_application_id=job_application.id,
                 resume_version_id=resume.id,
                 model=model,
-                name=crit["name"],
-                score=crit["score"],
-                strengths=crit["strengths"],
-                weaknesses=crit["weaknesses"],
+                name="error",
+                score=0,
+                strengths=[],
+                weaknesses=[f"Ошибка парсинга ответа модели: {evaluation['raw_model_output']}"],
                 created_at=func.now(),
                 updated_at=func.now(),
             )
             db.add(cv_evaluation)
+            # Устанавливаем wait при ошибке парсинга
+            job_application.status = JobApplicationStatus.cvReview
+            req_type = "wait"
+        else: 
+            for crit in evaluation["criteria"]:
+                cv_evaluation = JobApplicationCVEvaluation(
+                    job_application_id=job_application.id,
+                    resume_version_id=resume.id,
+                    model=model,
+                    name=crit["name"],
+                    score=crit["score"],
+                    strengths=crit["strengths"],
+                    weaknesses=crit["weaknesses"],
+                    created_at=func.now(),
+                    updated_at=func.now(),
+                )
+                db.add(cv_evaluation)
+
+                scores = [crit["score"] for crit in evaluation["criteria"] if isinstance(crit["score"], (int, float))]
+                average_score = mean(scores) if scores else 0
+
+                if average_score < 50:
+                    job_application.status = JobApplicationStatus.rejected
+                    req_type = "reject"
+                else:
+                    job_application.status = JobApplicationStatus.interview
+                    req_type = "next"
+
     except Exception as e:
         print(f"Ошибка при оценке резюме: {str(e)}")
         cv_evaluation = JobApplicationCVEvaluation(
@@ -287,6 +307,17 @@ def apply_for_job(db: Session, user_id: int, vacancy_id: int) -> JobApplicationL
             updated_at=func.now(),
         )
         db.add(cv_evaluation)
+        job_application.status = JobApplicationStatus.waitResult
+        req_type = "wait"
+
+    application_event = JobApplicationEvent(
+        application_id=job_application.id,
+        reqType=req_type,
+        status=job_application.status,
+        created_at=func.now(),  
+    )
+    db.add(application_event)
+    db.flush()
 
     db.commit()
 
