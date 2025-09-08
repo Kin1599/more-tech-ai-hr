@@ -1,11 +1,12 @@
 from datetime import datetime
+from statistics import mean
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
-from .helpers import _apply_mapped_to_vacancy, _map_application_status, _vacancy_to_response
+from .helpers import _apply_mapped_to_vacancy, _vacancy_to_response
 from ...models.models import HRProfile, User, Vacancy, JobApplication
 from .utils import parse_vacancy_docx, to_decimal, vacancy_to_txt
-
+from .schemas import VacancyDetailResponse, VacancyDetailApplicant
 
 
 def get_vacancies(db: Session, offset: int = 0, limit: int = 20):
@@ -100,12 +101,13 @@ def change_vacancy_status(db: Session, vacancy_id: int, new_status: str):
 
 
 
-def get_vacancy_detail(db: Session, vacancy_id: int) -> dict:
+def get_vacancy_detail(db: Session, vacancy_id: int) -> VacancyDetailResponse:
+    """Получить детальную информацию о вакансии и её откликах."""
     v = (
         db.query(Vacancy)
           .options(
               joinedload(Vacancy.job_applications).joinedload(JobApplication.applicant_profile),
-              joinedload(Vacancy.job_applications).joinedload(JobApplication.meetings), 
+              joinedload(Vacancy.job_applications).joinedload(JobApplication.cv_evaluations), 
           )
           .filter(Vacancy.id == vacancy_id)
           .first()
@@ -116,25 +118,26 @@ def get_vacancy_detail(db: Session, vacancy_id: int) -> dict:
     base = _vacancy_to_response(v)
 
     detail = []
-    for app in (v.job_applications or []):
-        prof = getattr(app, "applicant_profile", None)
+    for job_application in (v.job_applications or []):
+        prof = getattr(job_application, "applicant_profile", None)
         full_name = " ".join(filter(None, [
             getattr(prof, "name", None),
             getattr(prof, "surname", None),
         ])).strip() or "Кандидат"
+        
+        evaluations = getattr(job_application, "cv_evaluations", [])
+        scores = [eval.score for eval in evaluations if isinstance(eval.score, (int, float)) and eval.name != "error"]
+        score = float(mean(scores)) if scores else 0.0
 
-        try:
-            score = float(app.sumGrade) if app.sumGrade is not None else float(app.soft or 0) + float(app.tech or 0)
-        except Exception:
-            score = 0.0
+        detail.append(VacancyDetailApplicant(
+            applicantId=job_application.applicant_id,
+            name=full_name,
+            score=score,
+            status=job_application.status,
+            checked=False,
+        ))
 
-        detail.append({
-            "applicantId": getattr(app, "applicant_id", None),
-            "name": full_name,
-            "score": score,
-            "status": _map_application_status(app),
-            "checked": False,
-        })
-
-    base["detailResponses"] = detail
-    return base
+    return VacancyDetailResponse(
+        **base,
+        detailResponses=detail
+    )

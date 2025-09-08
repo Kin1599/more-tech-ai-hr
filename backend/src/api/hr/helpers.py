@@ -1,30 +1,6 @@
 from ...models.models import Vacancy
 from .utils import to_decimal
 
-def _map_application_status(app) -> str:
-    """Сворачивает статусы встреч/заявки в единый статус на карточке."""
-    meetings = getattr(app, "meetings", None) or []
-    if meetings:
-        last = max(meetings, key=lambda m: (m.id or 0))
-        ms = (getattr(last, "status", "") or "").strip()
-        return {
-            "reject": "rejected",
-            "approve": "approved",
-            "cvReview": "cvReview",
-            "waitPickTime": "interview",
-            "waitMeeting": "interview",
-            "waitResult": "waitResult",
-        }.get(ms, "cvReview")
-
-    s = (getattr(app, "status", "") or "").strip()
-    return {
-        "reject": "rejected",
-        "approve": "approved",
-        "review": "cvReview",
-        "screening": "cvReview",
-        "result": "waitResult",
-    }.get(s, "cvReview")
-
 def _vacancy_to_response(v: Vacancy) -> dict:
     """Маппинг ORM -> API"""
     return {
