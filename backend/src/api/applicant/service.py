@@ -1,10 +1,5 @@
-import os
-from pathlib import Path
-from statistics import mean
 from typing import List, Optional
-import PyPDF2
-from docx import Document
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
@@ -12,7 +7,6 @@ from ...models.models import (
     ApplicantProfile,
     ApplicantResumeVersion,
     JobApplication,
-    JobApplicationCVEvaluation,
     JobApplicationEvent,
     Vacancy,
     HRProfile,
@@ -20,41 +14,11 @@ from ...models.models import (
 )
 from .schemas import JobApplicationListItem, JobApplicationDetail, HRBrief, InterviewLinkResponse, JobApplicationStatus
 from .helpers import _vacancy_to_response
+from .utils import evaluate_resume_background
 
 def _hr_full_name(hr: HRProfile) -> str:
     parts = [hr.name, hr.patronymic, hr.surname]
     return " ".join([p for p in parts if p])
-
-
-
-def _extract_text_from_file(file_path: str) -> str:
-    """Извлечь текст из файла резюме (.pdf, .docx, .txt)."""
-    ext = Path(file_path).suffix.lower()
-    try:
-        if ext == ".pdf":
-            with open(file_path, "rb") as file:
-                reader = PyPDF2.PdfReader(file)
-                text = ""
-                for page in reader.pages:
-                    text += page.extract_text() or ""
-                return text.strip()
-        elif ext == ".docx" or ext == '.doc':
-            doc = Document(file_path)
-            return " ".join([para.text for para in doc.paragraphs]).strip()
-        elif ext == ".txt":
-            with open(file_path, "r", encoding="utf-8") as file:
-                return file.read().strip()
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail=f"Неподдерживаемый формат файла: {ext}"
-            )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при извлечении текста из резюме: {str(e)}"
-        )
-
 
 def get_vacancies(db: Session, offset: int = 0, limit: int = 20, vacancy_id: Optional[int] = None):
 
@@ -202,7 +166,7 @@ def get_interview_link(db: Session, user_id: int, vacancy_id: int) -> InterviewL
     return InterviewLinkResponse(interviewLink=meeting.meetLink if meeting else None)
 
 
-def apply_for_job(db: Session, user_id: int, vacancy_id: int) -> JobApplicationListItem:
+def apply_for_job(db: Session, user_id: int, vacancy_id: int, background_tasks: BackgroundTasks) -> JobApplicationListItem:
     """Отклик на вакансию"""
 
     from ...ml.cv_estimator import evaluate_cv
@@ -256,88 +220,17 @@ def apply_for_job(db: Session, user_id: int, vacancy_id: int) -> JobApplicationL
     db.add(job_application)
     db.flush()
 
-    model = "qwen/qwen3-32b"
-
-    try:
-        resume_text = _extract_text_from_file(resume.storage_path)
-        job_description = vacancy.description or ""
-        criteria = ["hard skills", "soft skills", "scalability mindset"]
-        evaluation = evaluate_cv(
-            job_description=job_description,
-            resume_text=resume_text,
-            criteria=criteria,
-            api_key=os.getenv("GROQ_API_KEY"),
-            model=model,
-        )
-        
-        if evaluation.get("parse_error", False):
-            cv_evaluation = JobApplicationCVEvaluation(
-                job_application_id=job_application.id,
-                resume_version_id=resume.id,
-                model=model,
-                name="error",
-                score=0,
-                strengths=[],
-                weaknesses=[f"Ошибка парсинга ответа модели: {evaluation['raw_model_output']}"],
-                created_at=func.now(),
-                updated_at=func.now(),
-            )
-            db.add(cv_evaluation)
-            # Устанавливаем wait при ошибке парсинга
-            job_application.status = JobApplicationStatus.cvReview
-            req_type = "wait"
-        else: 
-            for crit in evaluation["criteria"]:
-                cv_evaluation = JobApplicationCVEvaluation(
-                    job_application_id=job_application.id,
-                    resume_version_id=resume.id,
-                    model=model,
-                    name=crit["name"],
-                    score=crit["score"],
-                    strengths=crit["strengths"],
-                    weaknesses=crit["weaknesses"],
-                    created_at=func.now(),
-                    updated_at=func.now(),
-                )
-                db.add(cv_evaluation)
-
-                scores = [crit["score"] for crit in evaluation["criteria"] if isinstance(crit["score"], (int, float))]
-                average_score = mean(scores) if scores else 0
-
-                if average_score < 50:
-                    job_application.status = JobApplicationStatus.rejected
-                    req_type = "reject"
-                else:
-                    job_application.status = JobApplicationStatus.interview
-                    req_type = "next"
-
-    except Exception as e:
-        print(f"Ошибка при оценке резюме: {str(e)}")
-        cv_evaluation = JobApplicationCVEvaluation(
-            job_application_id=job_application.id,
-            resume_version_id=resume.id,
-            model=model,
-            name="error",
-            score=0,
-            strengths=[],
-            weaknesses=[f"Ошибка оценки: {str(e)}"],
-            created_at=func.now(),
-            updated_at=func.now(),
-        )
-        db.add(cv_evaluation)
-        job_application.status = JobApplicationStatus.waitResult
-        req_type = "wait"
-
     application_event = JobApplicationEvent(
         application_id=job_application.id,
-        reqType=req_type,
-        status=job_application.status,
-        created_at=func.now(),  
+        reqType='wait',
+        status=JobApplicationStatus.cvReview,
+        created_at=func.now(),
     )
-    db.add(application_event)
-    db.flush()
 
+    db.add(application_event)
     db.commit()
+
+    background_tasks.add_task(evaluate_resume_background, job_application.id, vacancy.id, resume.id)
 
     hr = db.query(HRProfile).filter_by(id=vacancy.hr_id).first()
     if not hr:
