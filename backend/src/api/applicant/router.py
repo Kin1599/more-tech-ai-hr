@@ -1,13 +1,30 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ...models.models import User
 from ...core.security import get_current_applicant_user
 from ...core.database import get_session
-from .schemas import JobApplicationListItem
-from .service import apply_for_job, get_interview_link, get_job_application, list_job_applications
+from .schemas import JobApplicationListItem, VacancyResponse
+from .service import apply_for_job, get_interview_link, get_job_application, get_vacancies, list_job_applications
 
 router = APIRouter(tags=["applicant"])
+
+@router.get('/vacancies', response_model=list[VacancyResponse], dependencies=[Depends(get_current_applicant_user)])
+def get_vacancies_endpoint(
+    offset: int = Query(0, ge=0, description="Смещение (0, 20, 40, ...)"),
+    limit: int = Query(20, ge=1, le=200, description="Размер страницы (1..200)"),
+    db: Session = Depends(get_session),
+):
+    """Постраничный список вакансий"""
+    return get_vacancies(db, offset, limit)
+
+@router.get('/vacancies/{vacancy_id}', response_model=list[VacancyResponse], dependencies=[Depends(get_current_applicant_user)])
+def get_detail_vacancy_endpoint(
+    vacancy_id: int,
+    db: Session = Depends(get_session),
+):
+    """Получить детальную информацию о вакансии"""
+    return get_vacancies(db, vacancy_id=vacancy_id)
 
 @router.get("/job_applications", response_model=list[JobApplicationListItem])
 def list_job_applications_endpoint(

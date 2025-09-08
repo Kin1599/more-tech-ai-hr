@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from statistics import mean
-from typing import List
+from typing import List, Optional
 import PyPDF2
 from docx import Document
 from fastapi import HTTPException, status
@@ -19,6 +19,7 @@ from ...models.models import (
     Meeting,
 )
 from .schemas import JobApplicationListItem, JobApplicationDetail, HRBrief, InterviewLinkResponse, JobApplicationStatus
+from .helpers import _vacancy_to_response
 
 def _hr_full_name(hr: HRProfile) -> str:
     parts = [hr.name, hr.patronymic, hr.surname]
@@ -55,6 +56,23 @@ def _extract_text_from_file(file_path: str) -> str:
         )
 
 
+def get_vacancies(db: Session, offset: int = 0, limit: int = 20, vacancy_id: Optional[int] = None):
+
+    if vacancy_id is not None:
+        vacancy = db.query(Vacancy).filter_by(id=vacancy_id).first()
+        if not vacancy:
+            return []
+        return [_vacancy_to_response(vacancy)]
+    
+    vacancies = (
+        db.query(Vacancy)
+          .order_by(desc(Vacancy.date), desc(Vacancy.id))
+          .offset(offset)
+          .limit(limit)
+          .all()
+    )
+
+    return [_vacancy_to_response(v) for v in vacancies]
 
 def list_job_applications(db: Session, user_id: int) -> List[JobApplicationListItem]:
     """
