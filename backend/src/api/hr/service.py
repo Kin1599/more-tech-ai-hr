@@ -1,12 +1,13 @@
 from datetime import datetime
 from statistics import mean
+from fastapi import HTTPException, status
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
 from .helpers import _apply_mapped_to_vacancy, _vacancy_to_response
 from ...models.models import HRProfile, User, Vacancy, JobApplication
 from .utils import parse_vacancy_docx, to_decimal, vacancy_to_txt
-from .schemas import VacancyDetailResponse, VacancyDetailApplicant
+from .schemas import ApplicantDetailResponse, CVEvaluation, InterviewDetail, InterviewVerdictEnum, VacancyDetailResponse, VacancyDetailApplicant
 
 
 def get_vacancies(db: Session, offset: int = 0, limit: int = 20):
@@ -140,4 +141,43 @@ def get_vacancy_detail(db: Session, vacancy_id: int) -> VacancyDetailResponse:
     return VacancyDetailResponse(
         **base,
         detailResponses=detail
+    )
+
+def get_applicant_detail(db: Session, applicant_id: int, vacancy_id: int):
+    """Получить детальную информацию о соискателе и его отклике на вакансию."""
+    job_application = (
+        db.query(JobApplication)
+        .options(
+            joinedload(JobApplication.cv_evaluations),
+            joinedload(JobApplication.applicant_profile)
+        )
+        .filter(JobApplication.applicant_id == applicant_id, JobApplication.vacancy_id == vacancy_id)
+        .first()
+    )
+    if not job_application:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job Application not found")
+
+    cv_evaluations = [
+        CVEvaluation(
+            name=eval.name,
+            score=eval.score,
+            strengths=eval.strengths,
+            weaknesses=eval.weaknesses
+        )
+        for eval in job_application.cv_evaluations
+    ]
+
+    interview = InterviewDetail(
+        summary="Интервью ещё не проведено",
+        strengths=["Не оценено"],
+        weaknesses=["Не оценено"],
+        recommendations="Нет рекомендаций",
+        verdict=InterviewVerdictEnum.no_hire,
+        risk_notes=["Интервью не проводилось"]
+    )
+
+    return ApplicantDetailResponse(
+        status=job_application.status,
+        cv=cv_evaluations,
+        interview=interview if job_application.status in ["interview", "waitResult", "approved"] else None
     )

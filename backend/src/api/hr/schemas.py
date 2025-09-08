@@ -70,3 +70,32 @@ class VacancyDetailApplicant(BaseModel):
 
 class VacancyDetailResponse(VacancyResponse):
     detailResponses: List[VacancyDetailApplicant]
+
+class InterviewVerdictEnum(str, Enum):
+    strong_hire = "strong_hire"
+    hire = "hire"
+    borderline = "borderline"
+    no_hire = "no_hire"
+
+class CVEvaluation(BaseModel):
+    name: str
+    score: int
+    strengths: List[str]
+    weaknesses: List[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+class InterviewDetail(BaseModel):
+    summary: str
+    strengths: List[str]
+    weaknesses: List[str]
+    recommendations: str
+    verdict: InterviewVerdictEnum
+    risk_notes: List[str]
+
+class ApplicantDetailResponse(BaseModel):
+    status: ApplicantStatusEnum
+    cv: List[CVEvaluation]
+    interview: Optional[InterviewDetail] = None
+
+    model_config = ConfigDict(from_attributes=True)

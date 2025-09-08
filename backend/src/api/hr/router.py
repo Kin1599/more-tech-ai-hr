@@ -5,6 +5,7 @@ from ...core.security import get_current_hr_user
 from ...core.database import get_session
 from ...models.models import User
 from .schemas import ( 
+    ApplicantDetailResponse,
     VacancyDetailResponse,
     VacancyResponse,
     VacancyStatusUpdateRequest,
@@ -12,6 +13,7 @@ from .schemas import (
 )
 from .service import (
     change_vacancy_status,
+    get_applicant_detail,
     get_vacancies, 
     create_vacancy,
     change_vacancy,
@@ -95,3 +97,17 @@ def get_vacancy_detail_endpoint(
         return get_vacancy_detail(db=db, vacancy_id=vacancy_id)
     except FileNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vacancy not found")
+    
+@router.get("/applicants/{applicantId}", response_model=ApplicantDetailResponse, dependencies=[Depends(get_current_hr_user)])
+def get_applicant_detail_endpoint(
+    applicant_id: int,
+    vacancy_id: int = Query(..., ge=1, description="ID вакансии для отклика"),
+    db: Session = Depends(get_session),
+):
+    """Получить детальную информацию о соискателе и его отклике на вакансию."""
+    try:
+        return get_applicant_detail(db=db, applicant_id=applicant_id, vacancy_id=vacancy_id)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
