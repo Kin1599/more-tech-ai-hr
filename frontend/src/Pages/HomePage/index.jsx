@@ -23,7 +23,7 @@ const namesArr = [
 ];
 
 const HomePage = () => {
-  const {vacancies, fetchVacancies, uploadCV} = useStore();
+  const {vacancies, fetchVacancies, uploadCV, successToast, errorToast} = useStore();
   const fileInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -53,15 +53,15 @@ const HomePage = () => {
         const result = await uploadCV(file);
 
         if (result.success) {
-          alert(`Файл "${file.name}" успешно загружен! Вакансия создана.`);
+          successToast('Файл загружен', `Файл "${file.name}" успешно загружен! Вакансия создана.`);
           // Обновляем список вакансий
           await fetchVacancies();
         } else {
-          alert(`Ошибка при загрузке файла: ${result.error}`);
+          errorToast('Ошибка загрузки', `Ошибка при загрузке файла: ${result.error}`);
         }
       } catch (error) {
         console.error('Ошибка при загрузке файла:', error);
-        alert('Произошла ошибка при загрузке файла');
+        errorToast('Ошибка', 'Произошла ошибка при загрузке файла');
       }
 
       // Очищаем input
@@ -84,7 +84,9 @@ const HomePage = () => {
     if (statusFilter === 'active') {
       matchesStatus = vacancy.status === 'active';
     } else if (statusFilter === 'closed') {
-      matchesStatus = ['closed', 'stopped'].includes(vacancy.status);
+      matchesStatus = vacancy.status === 'closed';
+    } else if (statusFilter === 'stopped') {
+      matchesStatus = vacancy.status === 'stopped';
     }
     // Если statusFilter === 'all', то matchesStatus остается true
 

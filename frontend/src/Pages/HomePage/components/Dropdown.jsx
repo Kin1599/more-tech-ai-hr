@@ -10,8 +10,9 @@ import {
 const Dropdown = ({selectedFilter, onFilterChange}) => {
   const filterOptions = [
     {value: 'all', label: 'Все вакансии'},
-    {value: 'active', label: 'Активные вакансии'},
-    {value: 'closed', label: 'Закрытые вакансии'},
+    {value: 'active', label: 'Активные'},
+    {value: 'closed', label: 'Закрытые'},
+    {value: 'stopped', label: 'Остановленные'},
   ];
 
   const getCurrentLabel = () => {
@@ -31,7 +32,11 @@ const Dropdown = ({selectedFilter, onFilterChange}) => {
       </DropdownMenuTrigger>
       <DropdownMenuContent className='w-[200px]'>
         {filterOptions.map((option) => (
-          <DropdownMenuItem key={option.value} onClick={() => onFilterChange(option.value)} className='cursor-pointer'>
+          <DropdownMenuItem
+            key={option.value}
+            onClick={() => onFilterChange(option.value)}
+            className='cursor-pointer text-center'
+          >
             {option.label}
           </DropdownMenuItem>
         ))}

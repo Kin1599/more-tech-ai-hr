@@ -11,7 +11,7 @@ import {capitalizeFirst} from '../../lib/utils';
 const VacancyPage = () => {
   const {id} = useParams();
   const navigate = useNavigate();
-  const {updateVacancy, uploadCV, fetchHRVacancy, changeVacancyStatus} = useStore();
+  const {updateVacancy, uploadCV, fetchHRVacancy, changeVacancyStatus, successToast, errorToast} = useStore();
   const fileInputRef = useRef(null);
 
   // Проверяем, создаем ли новую вакансию
@@ -73,18 +73,20 @@ const VacancyPage = () => {
         const result = await uploadCV(file, vacancy?.vacancyId);
 
         if (result.success) {
-          alert(`Файл "${file.name}" успешно загружен! Вакансия обновлена.`);
+          successToast('Файл загружен', `Файл "${file.name}" успешно загружен! Вакансия обновлена.`);
           // Обновляем данные вакансии
           if (vacancy?.vacancyId) {
-            // Обновляем существующую вакансию
+            // Обновляем существующую вакансию в store
             updateVacancy(vacancy.vacancyId, result.data);
+            // Обновляем локальное состояние
+            setVacancy((prev) => ({...prev, ...result.data}));
           }
         } else {
-          alert(`Ошибка при загрузке файла: ${result.error}`);
+          errorToast('Ошибка загрузки', `Ошибка при загрузке файла: ${result.error}`);
         }
       } catch (error) {
         console.error('Ошибка при загрузке файла:', error);
-        alert('Произошла ошибка при загрузке файла');
+        errorToast('Ошибка', 'Произошла ошибка при загрузке файла');
       }
 
       // Очищаем input
@@ -101,13 +103,15 @@ const VacancyPage = () => {
 
       if (result.success) {
         // Статус уже обновлен в store через changeVacancyStatus
+        // Обновляем локальное состояние
+        setVacancy((prev) => ({...prev, status: newStatus}));
         console.log('Статус вакансии успешно изменен');
       } else {
-        alert(`Ошибка при изменении статуса: ${result.error}`);
+        errorToast('Ошибка', `Ошибка при изменении статуса: ${result.error}`);
       }
     } catch (error) {
       console.error('Ошибка при изменении статуса:', error);
-      alert('Произошла ошибка при изменении статуса');
+      errorToast('Ошибка', 'Произошла ошибка при изменении статуса');
     }
   };
 

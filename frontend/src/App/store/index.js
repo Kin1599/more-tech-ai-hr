@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {getVacancies, getVacancy, getHRVacancy, getHRApplicant, updateVacancyStatus, getApplicantApplications, getApplicantVacancy, applyToVacancy, getApplicantJobApplications, getApplicantJobApplication, uploadResume, login, register, uploadCV} from '../../Api';
+import {getVacancies, getVacancy, getHRVacancy, getHRApplicant, updateVacancyStatus, getApplicantApplications, getApplicantVacancy, applyToVacancy, getApplicantJobApplications, getApplicantJobApplication, uploadResume, login, register, uploadCVFile} from '../../Api';
 import {setAuthToken, setStoredToken, removeStoredToken, getStoredToken} from '../../Api/config';
 
 export const useStore = create((set) => {
@@ -22,6 +22,69 @@ export const useStore = create((set) => {
   return {
     user: initializeUser(),
     setUser: (user) => set({user}),
+    
+    // Состояние для уведомлений
+    toasts: [],
+    
+    // Функции для управления уведомлениями
+    addToast: (toast) => {
+      const id = Date.now() + Math.random();
+      const newToast = { id, ...toast };
+      set((state) => ({ toasts: [...state.toasts, newToast] }));
+      
+      // Автоматически удаляем уведомление через 5 секунд
+      if (toast.duration !== 0) {
+        setTimeout(() => {
+          set((state) => ({ toasts: state.toasts.filter(t => t.id !== id) }));
+        }, toast.duration || 5000);
+      }
+      
+      return id;
+    },
+    
+    removeToast: (id) => {
+      set((state) => ({ toasts: state.toasts.filter(t => t.id !== id) }));
+    },
+    
+    successToast: (title, description) => {
+      const id = Date.now() + Math.random();
+      const newToast = { 
+        id, 
+        title, 
+        description, 
+        variant: 'success',
+        duration: 5000
+      };
+      
+      set((state) => ({ toasts: [...state.toasts, newToast] }));
+      
+      // Автоматически удаляем уведомление через 5 секунд
+      setTimeout(() => {
+        set((state) => ({ toasts: state.toasts.filter(t => t.id !== id) }));
+      }, 5000);
+      
+      return id;
+    },
+    
+    errorToast: (title, description) => {
+      const id = Date.now() + Math.random();
+      const newToast = { 
+        id, 
+        title, 
+        description, 
+        variant: 'destructive',
+        duration: 5000
+      };
+      
+      set((state) => ({ toasts: [...state.toasts, newToast] }));
+      
+      // Автоматически удаляем уведомление через 5 секунд
+      setTimeout(() => {
+        set((state) => ({ toasts: state.toasts.filter(t => t.id !== id) }));
+      }, 5000);
+      
+      return id;
+    },
     
     // Предустановленные пользователи
     // Мок данные пользователей больше не нужны - используем API
@@ -56,15 +119,15 @@ export const useStore = create((set) => {
     },
     
     // Функция регистрации
-    register: async (email, password, resumeFile) => {
+    register: async (email, password, resumeFile, role = 'applicant') => {
       try {
-        const response = await register(email, password, resumeFile);
-        const { access_token, user_id, role } = response;
+        const response = await register(email, password, resumeFile, role);
+        const { access_token, user_id, role: userRole } = response;
         
         const userData = {
           id: user_id,
           email,
-          role,
+          role: userRole,
           name: email.split('@')[0] // Генерируем имя из email
         };
         
@@ -98,6 +161,19 @@ export const useStore = create((set) => {
         set({ vacancies });
       } catch (error) {
         console.error('Ошибка при загрузке вакансий:', error);
+        
+        // Показываем уведомление только при ошибке
+        set((state) => {
+          const id = Date.now() + Math.random();
+          const newToast = { 
+            id, 
+            title: 'Ошибка загрузки', 
+            description: 'Не удалось загрузить вакансии', 
+            variant: 'destructive',
+            duration: 5000
+          };
+          return { toasts: [...state.toasts, newToast] };
+        });
       }
     },
     
@@ -211,12 +287,14 @@ export const useStore = create((set) => {
       }
     },
     
-    // Функция для получения отфильтрованных вакансий (исключая те, на которые уже подан отклик)
+    // Функция для получения отфильтрованных вакансий (исключая те, на которые уже подан отклик и закрытые вакансии)
     getFilteredVacancies: () => {
       const state = useStore.getState();
       const appliedVacancyIds = state.jobApplications.map(app => app.vacancyId);
       return state.applicantApplications.filter(vacancy => 
-        !appliedVacancyIds.includes(vacancy.vacancyId)
+        !appliedVacancyIds.includes(vacancy.vacancyId) && 
+        vacancy.status !== 'closed' &&
+        vacancy.status !== 'inactive'
       );
     },
     
@@ -251,7 +329,7 @@ export const useStore = create((set) => {
     // Функция для загрузки CV
     uploadCV: async (file, vacancyId = null) => {
       try {
-        const vacancyData = await uploadCV(file, vacancyId);
+        const vacancyData = await uploadCVFile(file, vacancyId);
         
         if (vacancyId) {
           // Обновляем существующую вакансию
@@ -267,9 +345,36 @@ export const useStore = create((set) => {
           }));
         }
         
+        // Показываем уведомление об успешной загрузке
+        set((state) => {
+          const id = Date.now() + Math.random();
+          const newToast = { 
+            id, 
+            title: 'CV загружен', 
+            description: vacancyId ? 'Вакансия обновлена' : 'Новая вакансия создана', 
+            variant: 'success',
+            duration: 3000
+          };
+          return { toasts: [...state.toasts, newToast] };
+        });
+        
         return { success: true, data: vacancyData };
       } catch (error) {
         console.error('Ошибка при загрузке CV:', error);
+        
+        // Показываем уведомление об ошибке
+        set((state) => {
+          const id = Date.now() + Math.random();
+          const newToast = { 
+            id, 
+            title: 'Ошибка загрузки CV', 
+            description: error.response?.data?.detail || 'Не удалось загрузить CV', 
+            variant: 'destructive',
+            duration: 5000
+          };
+          return { toasts: [...state.toasts, newToast] };
+        });
+        
         return { 
           success: false, 
           error: error.response?.data?.detail || 'Ошибка при загрузке CV' 

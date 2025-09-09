@@ -9,13 +9,12 @@ import {capitalizeFirst} from '../../lib/utils';
 const ApplicantVacancyPage = () => {
   const {vacancyId} = useParams();
   const navigate = useNavigate();
-  const {fetchApplicantVacancy, applyToVacancy} = useStore();
+  const {fetchApplicantVacancy, applyToVacancy, successToast, errorToast} = useStore();
 
   const [vacancy, setVacancy] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
   const [applicationStatus, setApplicationStatus] = useState(null); // 'applied', 'error', null
-  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     const loadVacancy = async () => {
@@ -43,31 +42,19 @@ const ApplicantVacancyPage = () => {
 
     setIsApplying(true);
     setApplicationStatus(null);
-    setNotification(null);
 
     try {
       const result = await applyToVacancy(parseInt(vacancyId));
       if (result.success) {
         setApplicationStatus('applied');
-        setNotification({
-          type: 'success',
-          message: 'Отклик успешно подан! Мы свяжемся с вами в ближайшее время.',
-        });
-        // Автоматически скрыть уведомление через 5 секунд
-        setTimeout(() => setNotification(null), 5000);
+        successToast('Отклик подан', 'Отклик успешно подан! Мы свяжемся с вами в ближайшее время.');
       } else {
         setApplicationStatus('error');
-        setNotification({
-          type: 'error',
-          message: result.error || 'Ошибка при подаче отклика. Попробуйте позже.',
-        });
+        errorToast('Ошибка', result.error || 'Ошибка при подаче отклика. Попробуйте позже.');
       }
     } catch {
       setApplicationStatus('error');
-      setNotification({
-        type: 'error',
-        message: 'Ошибка при подаче отклика. Проверьте подключение к интернету.',
-      });
+      errorToast('Ошибка', 'Ошибка при подаче отклика. Проверьте подключение к интернету.');
     } finally {
       setIsApplying(false);
     }
@@ -161,26 +148,8 @@ const ApplicantVacancyPage = () => {
 
   return (
     <div className='flex flex-col gap-[20px]'>
-      {/* Уведомления */}
-      {notification && (
-        <div
-          className={`p-4 rounded-lg ${
-            notification.type === 'success'
-              ? 'bg-green-100 border border-green-300 text-green-800'
-              : 'bg-red-100 border border-red-300 text-red-800'
-          }`}
-        >
-          <div className='flex justify-between items-center'>
-            <p className='font-medium'>{notification.message}</p>
-            <button onClick={() => setNotification(null)} className='ml-4 text-lg font-bold hover:opacity-70'>
-              ×
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Кнопка назад */}
-      <div>
+      {/* Кнопка назад и действия */}
+      <div className='flex justify-between items-center'>
         <Button
           onClick={() => navigate('/applicant')}
           variant='outline'
@@ -191,6 +160,45 @@ const ApplicantVacancyPage = () => {
           </svg>
           Назад к списку вакансий
         </Button>
+
+        {/* Кнопки действий */}
+        {vacancy.status === 'closed' ? (
+          <Button className='bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 text-lg' disabled>
+            Вакансия закрыта
+          </Button>
+        ) : vacancy.status === 'inactive' ? (
+          <Button className='bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 text-lg' disabled>
+            Вакансия неактивна
+          </Button>
+        ) : applicationStatus === 'applied' ? (
+          <Button className='bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg' disabled>
+            ✓ Отклик подан
+          </Button>
+        ) : applicationStatus === 'error' ? (
+          <div className='flex flex-col items-end gap-2'>
+            <Button
+              className='bg-[#eb5e28] hover:bg-[#d54e1a] text-white px-8 py-3 text-lg'
+              onClick={handleApplyToVacancy}
+              disabled={isApplying}
+            >
+              {isApplying ? 'Подача отклика...' : 'Попробовать снова'}
+            </Button>
+            <p className='text-sm text-red-600'>Ошибка при подаче отклика</p>
+          </div>
+        ) : (
+          <div className='flex gap-3'>
+            <Button
+              className='bg-[#eb5e28] hover:bg-[#d54e1a] text-white px-8 py-3 text-lg cursor-pointer'
+              onClick={handleApplyToVacancy}
+              disabled={isApplying}
+            >
+              {isApplying ? 'Подача отклика...' : 'Подать отклик'}
+            </Button>
+            <Button variant='outline' className='px-8 py-3 text-lg'>
+              Сохранить в избранное
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Заголовок вакансии */}
@@ -331,47 +339,6 @@ const ApplicantVacancyPage = () => {
           </CardContent>
         </Card>
       )}
-
-      {/* Кнопки действий */}
-      <div className='flex gap-4 justify-center flex-wrap'>
-        {vacancy.status === 'closed' ? (
-          <Button className='bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 text-lg' disabled>
-            Вакансия закрыта
-          </Button>
-        ) : vacancy.status === 'inactive' ? (
-          <Button className='bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 text-lg' disabled>
-            Вакансия неактивна
-          </Button>
-        ) : applicationStatus === 'applied' ? (
-          <Button className='bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg' disabled>
-            ✓ Отклик подан
-          </Button>
-        ) : applicationStatus === 'error' ? (
-          <div className='flex flex-col items-center gap-2'>
-            <Button
-              className='bg-[#eb5e28] hover:bg-[#d54e1a] text-white px-8 py-3 text-lg'
-              onClick={handleApplyToVacancy}
-              disabled={isApplying}
-            >
-              {isApplying ? 'Подача отклика...' : 'Попробовать снова'}
-            </Button>
-            <p className='text-sm text-red-600'>Ошибка при подаче отклика</p>
-          </div>
-        ) : (
-          <>
-            <Button
-              className='bg-[#eb5e28] hover:bg-[#d54e1a] text-white px-8 py-3 text-lg'
-              onClick={handleApplyToVacancy}
-              disabled={isApplying}
-            >
-              {isApplying ? 'Подача отклика...' : 'Подать отклик'}
-            </Button>
-            <Button variant='outline' className='px-8 py-3 text-lg'>
-              Сохранить в избранное
-            </Button>
-          </>
-        )}
-      </div>
     </div>
   );
 };

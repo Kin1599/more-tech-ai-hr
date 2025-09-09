@@ -3,8 +3,17 @@ import {useParams, useNavigate} from 'react-router-dom';
 import {Button} from '../../components/ui/button';
 import {Badge} from '../../components/ui/badge';
 import {Card, CardContent, CardHeader, CardTitle} from '../../components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import {useStore} from '../../App/store';
 import {capitalizeFirst} from '../../lib/utils';
+import {getInterviewLink} from '../../Api';
 
 const ApplicationDetailPage = () => {
   const {vacancyId} = useParams();
@@ -14,6 +23,8 @@ const ApplicationDetailPage = () => {
   const [application, setApplication] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showInterviewDialog, setShowInterviewDialog] = useState(false);
+  const [isGettingInterviewLink, setIsGettingInterviewLink] = useState(false);
 
   useEffect(() => {
     const loadApplication = async () => {
@@ -83,24 +94,22 @@ const ApplicationDetailPage = () => {
     }
   };
 
-  const copyInterviewLink = async () => {
-    if (application?.interviewLink) {
-      try {
-        await navigator.clipboard.writeText(application.interviewLink);
-        setLinkCopied(true);
-        setTimeout(() => setLinkCopied(false), 2000);
-      } catch (err) {
-        console.error('Ошибка при копировании ссылки:', err);
-        // Fallback для старых браузеров
-        const textArea = document.createElement('textarea');
-        textArea.value = application.interviewLink;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        setLinkCopied(true);
-        setTimeout(() => setLinkCopied(false), 2000);
-      }
+  const handleGetInterviewLink = () => {
+    setShowInterviewDialog(true);
+  };
+
+  const confirmInterview = async () => {
+    setIsGettingInterviewLink(true);
+    try {
+      const data = await getInterviewLink(vacancyId);
+      setApplication((prev) => ({...prev, interviewLink: data.interviewLink}));
+      setShowInterviewDialog(false);
+      // Автоматически переходим на ссылку
+      window.open(data.interviewLink, '_blank');
+    } catch (error) {
+      console.error('Ошибка при получении ссылки на интервью:', error);
+    } finally {
+      setIsGettingInterviewLink(false);
     }
   };
 
@@ -248,15 +257,10 @@ const ApplicationDetailPage = () => {
               </Button>
             )}
             <Button
-              className={`px-8 py-3 text-lg ${
-                linkCopied
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-purple-600 hover:bg-purple-700 text-white'
-              }`}
-              onClick={copyInterviewLink}
-              disabled={!application.interviewLink}
+              className='bg-[#eb5e28] hover:bg-[#d54e1a] text-white px-8 py-3 text-lg cursor-pointer'
+              onClick={handleGetInterviewLink}
             >
-              {linkCopied ? '✓ Ссылка скопирована!' : 'Получить ссылку на интервью'}
+              Пройти собеседование
             </Button>
           </>
         ) : application.interviewLink ? (
@@ -272,10 +276,40 @@ const ApplicationDetailPage = () => {
           </Button>
         )}
 
-        <Button variant='outline' className='px-8 py-3 text-lg'>
+        <Button variant='outline' className='px-8 py-3 text-lg cursor-pointer'>
           Связаться с HR
         </Button>
       </div>
+
+      {/* Модальное окно подтверждения собеседования */}
+      <Dialog open={showInterviewDialog} onOpenChange={setShowInterviewDialog}>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle className='text-xl font-semibold'>Подтверждение собеседования</DialogTitle>
+            <DialogDescription className='text-base leading-relaxed'>
+              Вы точно готовы пройти собеседование? Оно займет у вас 30 минут. Вас не должны отвлекать, и вы должны быть
+              в тихом месте с хорошим интернет-соединением.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className='flex gap-3'>
+            <Button
+              onClick={confirmInterview}
+              disabled={isGettingInterviewLink}
+              className='bg-[#eb5e28] hover:bg-[#d54e1a] text-white cursor-pointer'
+            >
+              {isGettingInterviewLink ? 'Получение ссылки...' : 'Да, готов'}
+            </Button>
+            <Button
+              variant='outline'
+              onClick={() => setShowInterviewDialog(false)}
+              disabled={isGettingInterviewLink}
+              className='cursor-pointer'
+            >
+              Нет
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

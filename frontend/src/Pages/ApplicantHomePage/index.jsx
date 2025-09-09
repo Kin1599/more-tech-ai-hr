@@ -21,8 +21,25 @@ const ApplicantHomePage = () => {
   const [isUploadingResume, setIsUploadingResume] = useState(false);
   const [resumeNotification, setResumeNotification] = useState(null);
 
+  // Состояние для пагинации
+  const [currentApplicationsPage, setCurrentApplicationsPage] = useState(1);
+  const [currentVacanciesPage, setCurrentVacanciesPage] = useState(1);
+  const itemsPerPage = 3;
+
   // Получаем отфильтрованные вакансии (исключая те, на которые уже подан отклик)
   const filteredVacancies = getFilteredVacancies();
+
+  // Пагинация для откликов
+  const totalApplicationsPages = Math.max(1, Math.ceil(jobApplications.length / itemsPerPage));
+  const startApplicationsIndex = (currentApplicationsPage - 1) * itemsPerPage;
+  const endApplicationsIndex = startApplicationsIndex + itemsPerPage;
+  const currentApplications = jobApplications.slice(startApplicationsIndex, endApplicationsIndex);
+
+  // Пагинация для вакансий
+  const totalVacanciesPages = Math.max(1, Math.ceil(filteredVacancies.length / itemsPerPage));
+  const startVacanciesIndex = (currentVacanciesPage - 1) * itemsPerPage;
+  const endVacanciesIndex = startVacanciesIndex + itemsPerPage;
+  const currentVacancies = filteredVacancies.slice(startVacanciesIndex, endVacanciesIndex);
 
   // Загружаем вакансии и отклики для апликанта при монтировании компонента
   useEffect(() => {
@@ -148,14 +165,39 @@ const ApplicantHomePage = () => {
               <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[#eb5e28]'></div>
               <span className='ml-2'>Загрузка откликов...</span>
             </div>
-          ) : jobApplications.length > 0 ? (
+          ) : currentApplications.length > 0 ? (
             <div className='space-y-4 flex gap-[10px] flex-wrap'>
-              {jobApplications.map((application) => (
+              {currentApplications.map((application) => (
                 <ApplicationCard key={application.vacancyId} application={application} />
               ))}
             </div>
           ) : (
             <div className='text-center py-8 text-gray-500'>У вас пока нет откликов на вакансии</div>
+          )}
+
+          {/* Пагинация для откликов */}
+          {jobApplications.length > itemsPerPage && (
+            <div className='flex justify-center items-center mt-6 space-x-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => setCurrentApplicationsPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentApplicationsPage === 1}
+              >
+                Назад
+              </Button>
+              <span className='text-sm text-gray-600'>
+                Страница {currentApplicationsPage} из {totalApplicationsPages}
+              </span>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => setCurrentApplicationsPage((prev) => Math.min(totalApplicationsPages, prev + 1))}
+                disabled={currentApplicationsPage === totalApplicationsPages}
+              >
+                Вперед
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -179,14 +221,39 @@ const ApplicantHomePage = () => {
               <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[#eb5e28]'></div>
               <span className='ml-2'>Загрузка вакансий...</span>
             </div>
-          ) : filteredVacancies.length > 0 ? (
+          ) : currentVacancies.length > 0 ? (
             <div className='space-y-4 flex gap-[10px] flex-wrap'>
-              {filteredVacancies.map((vacancy) => (
+              {currentVacancies.map((vacancy) => (
                 <VacancyCard key={vacancy.vacancyId} vacancy={vacancy} />
               ))}
             </div>
           ) : (
             <div className='text-center py-8 text-gray-500'>Нет доступных вакансий</div>
+          )}
+
+          {/* Пагинация для вакансий */}
+          {filteredVacancies.length > itemsPerPage && (
+            <div className='flex justify-center items-center mt-6 space-x-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => setCurrentVacanciesPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentVacanciesPage === 1}
+              >
+                Назад
+              </Button>
+              <span className='text-sm text-gray-600'>
+                Страница {currentVacanciesPage} из {totalVacanciesPages}
+              </span>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => setCurrentVacanciesPage((prev) => Math.min(totalVacanciesPages, prev + 1))}
+                disabled={currentVacanciesPage === totalVacanciesPages}
+              >
+                Вперед
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -198,7 +265,7 @@ const ApplicantHomePage = () => {
         </CardHeader>
         <CardContent>
           <div className='flex gap-4'>
-            <div className='relative'>
+            <div className='relative cursor-pointer'>
               <input
                 type='file'
                 id='resume-upload'
