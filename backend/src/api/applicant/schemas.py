@@ -55,7 +55,9 @@ class JobApplicationDetail(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class InterviewLinkResponse(BaseModel):
+    roomId: Optional[str] = None
     interviewLink: Optional[str] = None
+    token: str
 
     model_config = ConfigDict(from_attributes=True)
 

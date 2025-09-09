@@ -1,8 +1,10 @@
 import os
 import subprocess
+import time
 from typing import Tuple
 import logging
 import httpx
+import jwt
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -16,26 +18,24 @@ VIDEOSDK_TIMEOUT = float(os.getenv("VIDEOSDK_TIMEOUT", "30"))
 VIDEOSDK_INSECURE = os.getenv("VIDEOSDK_INSECURE", "false").lower() in ("1", "true", "yes")
 VIDEOSDK_TOKEN = os.getenv("VIDEOSDK_AUTH_TOKEN", "")
 
-
-def _headers_bearer() -> dict:
-    if not VIDEOSDK_TOKEN:
-        raise ValueError("VIDEOSDK_AUTH_TOKEN is not set")
-    token = VIDEOSDK_TOKEN.strip()
-    token = token if token.lower().startswith("bearer ") else f"Bearer {token}"
-    return {"Authorization": token, "Content-Type": "application/json"}
-
+def _generate_join_token(api_key: str, api_secret: str, ttl: int = 60 * 60) -> str:
+    """
+    Генерация join-token (JWT) для VideoSDK.
+    """
+    now = int(time.time())
+    payload = {
+        "apikey": api_key,
+        "permissions": ["allow_join", "allow_mod"],
+        "iat": now,
+        "exp": now + ttl,
+        "version": 2,
+    }
+    return jwt.encode(payload, api_secret, algorithm="HS256")
 
 def _headers_raw_auth() -> dict:
     if not VIDEOSDK_TOKEN:
         raise ValueError("VIDEOSDK_AUTH_TOKEN is not set")
     return {"Authorization": VIDEOSDK_TOKEN.strip(), "Content-Type": "application/json"}
-
-
-def _headers_x_api_key() -> dict:
-    if not VIDEOSDK_TOKEN:
-        raise ValueError("VIDEOSDK_AUTH_TOKEN is not set")
-    return {"x-api-key": VIDEOSDK_TOKEN.strip(), "Content-Type": "application/json"}
-
 
 def create_videosdk_room() -> Tuple[str, str]:
     """Create a VideoSDK room and return (room_id, join_link)."""
@@ -53,8 +53,15 @@ def create_videosdk_room() -> Tuple[str, str]:
         room_id = data.get("roomId") or data.get("id") or data.get("room_id")
         if not room_id:
             raise RuntimeError("Failed to obtain roomId from VideoSDK response")
+        
+        api_key = os.getenv("VIDEOSDK_API_KEY")
+        api_secret = os.getenv("VIDEOSDK_API_SECRET")
+        if not api_key or not api_secret:
+            raise RuntimeError("VIDEOSDK_API_KEY и VIDEOSDK_API_SECRET должны быть заданы")
+
+        join_token = _generate_join_token(api_key, api_secret)
         # Build a set of candidate join links documented/observed
-        playground = f"https://playground.videosdk.live/?token={VIDEOSDK_TOKEN}&meetingId={room_id}"
+        playground = f"https://playground.videosdk.live/?token={join_token}&meetingId={room_id}"
         logger.info(f"VideoSDK room created: id={room_id}, auth_scheme=raw_auth")
         return room_id, playground
 
@@ -70,6 +77,7 @@ def persist_meeting_for_application(db: Session, job_application_id: int, room_i
         status="waitMeeting",
         hrContact="",
         meetLink=join_link,
+        roomId=room_id,
         calendarLink="",
     )
     db.add(meeting)

@@ -177,6 +177,7 @@ class Meeting(Base):
     status = Column(MeetingStatusEnum)
     hrContact = Column(String)
     meetLink = Column(String)
+    roomId = Column(String)
     calendarLink = Column(String)
     
     created_at = Column(DateTime, server_default=func.now()) 

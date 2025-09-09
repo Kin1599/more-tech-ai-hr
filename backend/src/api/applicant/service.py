@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy import desc, func
@@ -14,7 +15,7 @@ from ...models.models import (
 )
 from .schemas import JobApplicationListItem, JobApplicationDetail, HRBrief, InterviewLinkResponse, JobApplicationStatus
 from .helpers import _vacancy_to_response
-from .utils import evaluate_resume_background
+from .utils import _generate_join_token, evaluate_resume_background
 
 def _hr_full_name(hr: HRProfile) -> str:
     parts = [hr.name, hr.patronymic, hr.surname]
@@ -164,8 +165,27 @@ def get_interview_link(db: Session, user_id: int, vacancy_id: int) -> InterviewL
         .order_by(desc(Meeting.created_at))
         .first()
     )
+
+    if not meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Митинг для этого отклика не найден"
+        )
+
+    print(f"Meeting debug: roomId={meeting.roomId}, meetLink={meeting.meetLink}")
     
-    return InterviewLinkResponse(interviewLink=meeting.meetLink if meeting else None)
+    api_key = os.getenv("VIDEOSDK_API_KEY")
+    api_secret = os.getenv("VIDEOSDK_API_SECRET")
+    if not api_key or not api_secret:
+        raise RuntimeError("VIDEOSDK_API_KEY и VIDEOSDK_API_SECRET должны быть заданы")
+    
+    join_token = _generate_join_token(api_key, api_secret)
+
+    return InterviewLinkResponse(
+        roomId=meeting.roomId, 
+        interviewLink=meeting.meetLink,
+        token=join_token,
+    )
 
 
 def apply_for_job(db: Session, user_id: int, vacancy_id: int, background_tasks: BackgroundTasks) -> JobApplicationListItem:

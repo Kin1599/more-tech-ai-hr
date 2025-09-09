@@ -1,7 +1,9 @@
 from datetime import datetime
 import os
 from statistics import mean
+import time
 
+import jwt
 from sqlalchemy import func
 
 from .schemas import JobApplicationStatus
@@ -105,3 +107,17 @@ def evaluate_resume_background(job_application_id: int, vacancy_id: int, resume_
         )
         db.add(application_event)
         db.commit()
+
+def _generate_join_token(api_key: str, api_secret: str, ttl: int = 60 * 60) -> str:
+    """
+    Генерация join-token (JWT) для VideoSDK.
+    """
+    now = int(time.time())
+    payload = {
+        "apikey": api_key,
+        "permissions": ["allow_join", "allow_mod"],
+        "iat": now,
+        "exp": now + ttl,
+        "version": 2,
+    }
+    return jwt.encode(payload, api_secret, algorithm="HS256")
