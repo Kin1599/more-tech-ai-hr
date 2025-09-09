@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import {Outlet, useNavigate, useLocation} from 'react-router-dom';
-import styles from './Layout.module.css';
+import styles from './layout.module.css';
 import {Avatar, AvatarImage, AvatarFallback} from '../components/ui/avatar';
 import {useStore} from '../App/store';
 import logoIcon from './imgs/logo.svg';

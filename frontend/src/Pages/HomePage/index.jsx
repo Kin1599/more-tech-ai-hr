@@ -10,7 +10,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '../../components/ui/pagination';
-import {useStore} from '../../App/Store';
+import {useStore} from '../../App/store';
 import Dropdown from './components/Dropdown';
 import plusIcon from '../../Shared/imgs/plus.svg';
 
