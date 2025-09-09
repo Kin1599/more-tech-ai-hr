@@ -33,6 +33,7 @@ class HRBrief(BaseModel):
     contact: Optional[str] = None
 
 class JobApplicationListItem(BaseModel):
+    applicationId: int
     vacancyId: int
     name: str
     region: Optional[str] = None
@@ -42,6 +43,7 @@ class JobApplicationListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class JobApplicationDetail(BaseModel):
+    applicationId: int
     name: str
     region: Optional[str] = None
     busyType: BusyType

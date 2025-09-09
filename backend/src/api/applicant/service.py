@@ -60,9 +60,10 @@ def list_job_applications(db: Session, user_id: int) -> List[JobApplicationListI
     )
 
     result: List[JobApplicationListItem] = []
-    for _, v, hr in rows:
+    for app, v, hr in rows:
         result.append(
             JobApplicationListItem(
+                applicationId=app.id,
                 vacancyId=v.id,
                 name=v.name or "",
                 region=v.region,
@@ -120,6 +121,7 @@ def get_job_application(db: Session, user_id: int, vacancy_id: int) -> JobApplic
     )
 
     return JobApplicationDetail(
+        applicationId=application.id,
         name=vacancy.name or "",
         region=vacancy.region,
         busyType=vacancy.busyType,

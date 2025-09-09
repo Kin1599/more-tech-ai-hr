@@ -131,6 +131,7 @@ def get_vacancy_detail(db: Session, vacancy_id: int) -> VacancyDetailResponse:
         score = float(mean(scores)) if scores else 0.0
 
         detail.append(VacancyDetailApplicant(
+            applicationId=job_application.id,
             applicantId=job_application.applicant_id,
             name=full_name,
             score=score,

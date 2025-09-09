@@ -62,6 +62,7 @@ class VacancyResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class VacancyDetailApplicant(BaseModel):
+    applicationId: int
     applicantId: int
     name: str
     score: float

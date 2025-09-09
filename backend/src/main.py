@@ -7,6 +7,7 @@ from .api.auth.router import router as auth_router
 from .api.applicant.router import router as applicant_router
 from .api.hr.router import router as hr_router
 from .api.user.router import router as user_router
+from .api.interview.router import router as interview_router
 from .core.database import Base, engine
 from dotenv import load_dotenv
 
@@ -36,3 +37,4 @@ app.include_router(auth_router, prefix='/auth')
 app.include_router(applicant_router, prefix='/applicant')
 app.include_router(hr_router, prefix='/hr')
 app.include_router(user_router, prefix='/user')
+app.include_router(interview_router, prefix='/interview')
