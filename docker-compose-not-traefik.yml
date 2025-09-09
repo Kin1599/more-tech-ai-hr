@@ -1,6 +1,4 @@
-
 services:
-    
   db:
     container_name: "db_without_traefik"
     image: "postgres:17"
@@ -13,7 +11,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASS}
     ports:
       #Здесь возможно будет лучше поменять на "5433:${DB_PORT}", так как на сервере может быть 5432 уже быть занят другой POSTGRES
-      - "5433:${DB_PORT}" 
+      - "5433:${DB_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -21,7 +19,7 @@ services:
       retries: 5
     volumes:
       - pg_project:/var/lib/postgresql/data
-    
+
   backend:
     container_name: "backend_without_traefik"
     build:
@@ -32,6 +30,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      - ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173
+
     depends_on:
       db:
         condition: service_healthy
@@ -42,7 +42,6 @@ services:
              uvicorn src.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - backend_uploads:/app/uploads
-    
   frontend:
     container_name: "frontend_without_traefik"
     build:

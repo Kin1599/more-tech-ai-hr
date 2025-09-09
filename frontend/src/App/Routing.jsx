@@ -13,7 +13,7 @@ import ApplicationDetailPage from '../Pages/ApplicationDetailPage';
 import NotFoundPage from '../Pages/NotFoundPage';
 
 import {Navigate} from 'react-router-dom';
-import {useStore} from '../App/store';
+import {useStore} from './store';
 
 // Компонент для сохранения URL перед редиректом на логин
 const URLSaver = ({children}) => {
