@@ -248,14 +248,6 @@ const ApplicationDetailPage = () => {
           <Button className='bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg'>Отклик одобрен</Button>
         ) : application.status === 'interview' ? (
           <>
-            {application.interviewLink && (
-              <Button
-                className='bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg'
-                onClick={() => window.open(application.interviewLink, '_blank')}
-              >
-                Пройти интервью
-              </Button>
-            )}
             <Button
               className='bg-[#eb5e28] hover:bg-[#d54e1a] text-white px-8 py-3 text-lg cursor-pointer'
               onClick={handleGetInterviewLink}
