@@ -13,7 +13,7 @@ import {
 } from '../../components/ui/dialog';
 import {useStore} from '../../App/store';
 import {capitalizeFirst} from '../../lib/utils';
-import {getInterviewLink} from '../../Api';
+import {getInterviewData} from '../../Api';
 
 const ApplicationDetailPage = () => {
   const {vacancyId} = useParams();
@@ -101,13 +101,13 @@ const ApplicationDetailPage = () => {
   const confirmInterview = async () => {
     setIsGettingInterviewLink(true);
     try {
-      const data = await getInterviewLink(vacancyId);
-      setApplication((prev) => ({...prev, interviewLink: data.interviewLink}));
+      const data = await getInterviewData(vacancyId);
+      setApplication((prev) => ({...prev, roomId: data.roomId, token: data.token}));
       setShowInterviewDialog(false);
-      // Автоматически переходим на ссылку
-      window.open(data.interviewLink, '_blank');
+      // Переходим на страницу видеособеседования
+      navigate(`/interview/${data.roomId}/${data.token}`);
     } catch (error) {
-      console.error('Ошибка при получении ссылки на интервью:', error);
+      console.error('Ошибка при получении данных для интервью:', error);
     } finally {
       setIsGettingInterviewLink(false);
     }

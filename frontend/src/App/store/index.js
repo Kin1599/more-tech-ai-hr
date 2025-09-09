@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {getVacancies, getVacancy, getHRVacancy, getHRApplicant, updateVacancyStatus, getApplicantApplications, getApplicantVacancy, applyToVacancy, getApplicantJobApplications, getApplicantJobApplication, uploadResume, login, register, uploadCVFile} from '../../Api';
+import {getVacancies, getVacancy, getHRVacancy, getHRApplicant, updateVacancyStatus, getApplicantApplications, getApplicantVacancy, applyToVacancy, getApplicantJobApplications, getApplicantJobApplication, uploadResume, login, register, uploadCVFile, updateUserProfile} from '../../Api';
 import {setAuthToken, setStoredToken, removeStoredToken, getStoredToken} from '../../Api/config';
 
 export const useStore = create((set) => {
@@ -419,6 +419,33 @@ export const useStore = create((set) => {
         return { 
           success: false, 
           error: error.response?.data?.detail || 'Ошибка при изменении статуса вакансии' 
+        };
+      }
+    },
+    
+    // Функция для обновления профиля пользователя
+    updateUserProfile: async (profileData) => {
+      try {
+        const updatedProfile = await updateUserProfile(profileData);
+        
+        // Обновляем данные пользователя в store
+        set((state) => ({
+          user: {
+            ...state.user,
+            ...updatedProfile
+          }
+        }));
+        
+        // Сохраняем обновленные данные в localStorage
+        const currentUser = useStore.getState().user;
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Ошибка при обновлении профиля:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при обновлении профиля' 
         };
       }
     },

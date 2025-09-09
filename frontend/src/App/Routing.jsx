@@ -10,6 +10,7 @@ import VacancyApplicantPage from '../Pages/vacancyApplicantPage';
 import ApplicantHomePage from '../Pages/ApplicantHomePage';
 import ApplicantVacancyPage from '../Pages/ApplicantVacancyPage';
 import ApplicationDetailPage from '../Pages/ApplicationDetailPage';
+import VideoInterviewPage from '../Pages/VideoInterviewPage';
 import NotFoundPage from '../Pages/NotFoundPage';
 
 import {Navigate} from 'react-router-dom';
@@ -172,6 +173,14 @@ const Routing = () => {
             element={
               <ApplicantRoute>
                 <AboutPage />
+              </ApplicantRoute>
+            }
+          />
+          <Route
+            path='/interview/:roomId/:token'
+            element={
+              <ApplicantRoute>
+                <VideoInterviewPage />
               </ApplicantRoute>
             }
           />

@@ -128,9 +128,21 @@ export const uploadCVFile = async (file, vacancyId = null) => {
   return response.data;
 };
 
-// API функция для получения ссылки на интервью
-export const getInterviewLink = async (vacancyId) => {
+// API функция для получения данных для видеособеседования
+export const getInterviewData = async (vacancyId) => {
   const response = await apiClient.get(`/api/applicant/job_applications/${vacancyId}/interview?vacancy_id=${vacancyId}`);
+  return response.data;
+};
+
+// API функция для получения профиля пользователя
+export const getUserProfile = async () => {
+  const response = await apiClient.get('/api/user/me');
+  return response.data;
+};
+
+// API функция для обновления профиля пользователя
+export const updateUserProfile = async (profileData) => {
+  const response = await apiClient.put('/api/user/me', profileData);
   return response.data;
 };
 
@@ -143,5 +155,7 @@ export const api = {
   login,
   register,
   uploadCV: uploadCVFile,
-  getInterviewLink,
+  getInterviewData,
+  getUserProfile,
+  updateUserProfile,
 };

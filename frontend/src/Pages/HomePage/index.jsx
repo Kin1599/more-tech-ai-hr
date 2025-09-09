@@ -127,7 +127,7 @@ const HomePage = () => {
                 width: '250px',
               },
               {name: vacancy.region || 'Н/Д', width: '400px'},
-              {name: (vacancy.responces || 0).toString(), width: '210px'},
+              {name: (vacancy.responses || 0).toString(), width: '210px'},
               {name: `${vacancy.salaryMin || 0} - ${vacancy.salaryMax || 0}`, width: '210px'},
               {name: getStatusText(vacancy.status), width: '130px'},
             ];

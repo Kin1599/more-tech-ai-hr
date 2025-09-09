@@ -1,8 +1,9 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Outlet, useNavigate, useLocation} from 'react-router-dom';
 import styles from './layout.module.css';
 import {Avatar, AvatarImage, AvatarFallback} from '../components/ui/avatar';
 import {useStore} from '../App/store';
+import ProfileEditModal from '../components/ProfileEditModal';
 import logoIcon from './imgs/logo.svg';
 import logoutIcon from './imgs/log-out.svg';
 
@@ -10,6 +11,7 @@ const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const {logout, user} = useStore();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const handleLogout = () => {
     if (window.confirm('Вы уверены, что хотите выйти?')) {
@@ -52,7 +54,10 @@ const Layout = () => {
           onClick={() => navigate('/')}
         />
         <div className='flex items-center gap-[20px]'>
-          <Avatar className='w-[40px] h-[40px] cursor-pointer'>
+          <Avatar
+            className='w-[40px] h-[40px] cursor-pointer hover:opacity-80 transition-opacity duration-200'
+            onClick={() => setIsProfileModalOpen(true)}
+          >
             <AvatarImage alt='user' />
             <AvatarFallback>u</AvatarFallback>
           </Avatar>
@@ -64,6 +69,9 @@ const Layout = () => {
       <div className='p-[20px] pb-[52px] bg-[#F5F2EE] h-full'>
         <Outlet />
       </div>
+
+      {/* Модальное окно редактирования профиля */}
+      <ProfileEditModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
     </div>
   );
 };
