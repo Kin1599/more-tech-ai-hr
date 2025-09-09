@@ -261,6 +261,7 @@ def apply_for_job(db: Session, user_id: int, vacancy_id: int, background_tasks: 
         )
     
     return JobApplicationListItem(
+        applicationId=job_application.id, 
         vacancyId=vacancy.id,
         name=vacancy.name or "",
         region=vacancy.region,
