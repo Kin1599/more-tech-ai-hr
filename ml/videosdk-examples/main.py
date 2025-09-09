@@ -3,9 +3,8 @@ from videosdk.agents import Agent, AgentSession, CascadingPipeline, JobContext, 
 from videosdk.plugins.silero import SileroVAD
 from videosdk.plugins.turn_detector import TurnDetector, pre_download_model
 from videosdk.plugins.openai import OpenAITTS
-from groq_stt import GroqSTT
+from videosdk.plugins.cartesia import CartesiaSTT
 from groq_llm import GroqLLM
-from groq_tts_fixed import GroqTTSFixed
 from typing import AsyncIterator
 import logging
 
@@ -29,9 +28,9 @@ async def start_session(context: JobContext):
 
     # Create pipeline
     pipeline = CascadingPipeline(
-        stt=GroqSTT(model="whisper-large-v3-turbo"),
+        stt=CartesiaSTT(model="ink-whisper", language="ru"),
         llm=GroqLLM(model="llama-3.1-8b-instant"),
-        tts=GroqTTSFixed(model="playai-tts"),
+        tts=OpenAITTS(model="tts-1"),
         vad=SileroVAD(),
         turn_detector=TurnDetector()
     )

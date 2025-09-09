@@ -6,9 +6,8 @@ from videosdk.plugins.silero import SileroVAD
 from videosdk.plugins.turn_detector import TurnDetector, pre_download_model
 from videosdk.plugins.openai import OpenAITTS
 # External imports still needed for VideoSDK pipeline compatibility
-from groq_stt import GroqSTT
-from groq_llm import GroqLLM  
-from groq_tts_fixed import GroqTTSFixed
+from videosdk.plugins.cartesia import CartesiaSTT
+from groq_llm import GroqLLM
 from typing import AsyncIterator, Generator, Iterable, List, Optional, Tuple, Dict, Any
 import logging
 import numpy as np

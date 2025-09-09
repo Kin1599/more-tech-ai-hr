@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ...models.models import User
@@ -66,11 +66,12 @@ def get_interview_link_endpoint(
 @router.post("/job_applications/{vacancy_id}", response_model=JobApplicationListItem)
 def apply_for_job_endpoint(
     vacancy_id: int,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_applicant_user),
     db: Session = Depends(get_session),
 ):
     """Откликнуться на вакансию"""
     try:
-        return apply_for_job(db, current_user.id, vacancy_id)
+        return apply_for_job(db, current_user.id, vacancy_id, background_tasks)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
