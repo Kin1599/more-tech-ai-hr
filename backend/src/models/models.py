@@ -12,6 +12,7 @@ ReqTypeEnum = Enum('reject', 'wait', 'next', name='req_type_enum')
 MeetingStatusEnum = Enum('cvReview', 'waitPickTime', 'waitMeeting', 'waitResult', 'rejected', 'approved', name='meeting_status_enum')
 OfferTypeEnum = Enum('TK', 'GPH', 'IP', name='offer_type_enum')
 BusyTypeEnum = Enum('allTime', 'projectTime', name='busy_type_enum')
+InterviewVerdictEnum = Enum('strong_hire', 'hire', 'borderline', 'no_hire', name='interview_verdict_enum')
 
 class User(Base):
     __tablename__ = 'users'
@@ -115,6 +116,7 @@ class JobApplication(Base):
     job_application_events = relationship("JobApplicationEvent", back_populates="job_application", cascade="all, delete-orphan")
     meetings = relationship("Meeting", back_populates="job_application", cascade="all, delete-orphan")
     resume_version = relationship("ApplicantResumeVersion")
+    interviews = relationship("Interview", back_populates="job_application", cascade="all, delete-orphan")
     cv_evaluations = relationship(
         "JobApplicationCVEvaluation",
         back_populates="job_application",
@@ -181,3 +183,18 @@ class Meeting(Base):
 
     job_application = relationship("JobApplication", back_populates="meetings")
     vacancy = relationship("Vacancy", back_populates="meetings")
+
+class Interview(Base):
+    __tablename__ = 'interviews'
+
+    id = Column(Integer, primary_key=True)
+    job_application_id = Column(Integer, ForeignKey('job_applications.id'), nullable=False)
+    history_json = Column(Text, nullable=False)
+    feedback_json = Column(Text)
+    strengths = Column(ARRAY(String), nullable=False, server_default=text("'{}'::text[]"))
+    weaknesses = Column(ARRAY(String), nullable=False, server_default=text("'{}'::text[]"))
+    verdict = Column(InterviewVerdictEnum, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    job_application = relationship("JobApplication", back_populates="interviews")
