@@ -13,10 +13,11 @@ const VacancyApplicantPage = () => {
 
   const [applicant, setApplicant] = useState(null);
   const [vacancy, setVacancy] = useState(null);
+  const [isInterviewExpanded, setIsInterviewExpanded] = useState(true);
+  const [isCVExpanded, setIsCVExpanded] = useState(true);
 
   const interview = applicant?.interview;
   const cv = applicant?.cv;
-
   useEffect(() => {
     const loadData = async () => {
       // Находим вакансию
@@ -138,7 +139,7 @@ const VacancyApplicantPage = () => {
           <Badge className={`px-4 py-2 text-sm font-medium border shadow-sm ${getStatusColor(applicant.status)}`}>
             {getStatusText(applicant.status)}
           </Badge>
-          {interview?.verdict && (
+          {interview?.verdict && applicant?.status !== 'interview' && (
             <Badge className={`px-4 py-2 text-sm font-medium border shadow-sm ${getVerdictColor(interview.verdict)}`}>
               {getVerdictText(interview.verdict)}
             </Badge>
@@ -147,132 +148,187 @@ const VacancyApplicantPage = () => {
       </div>
       {cv && cv.length > 0 && (
         <div className='space-y-4'>
-          <h3 className='text-[20px] font-semibold'>Анализ резюме</h3>
-          {cv.map((cvItem, index) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle className='text-[18px]'>{cvItem.name}</CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-3'>
-                <div className='text-[16px]'>
-                  <span className='font-bold'>Оценка: </span>
-                  <span className='text-blue-600 font-semibold'>{cvItem.score.toFixed(2)}/100</span>
+          <Card>
+            <CardHeader
+              className='cursor-pointer hover:bg-gray-50 transition-colors duration-200'
+              onClick={() => setIsCVExpanded(!isCVExpanded)}
+            >
+              <div className='flex items-center justify-between'>
+                <CardTitle className='text-[18px]'>Анализ резюме</CardTitle>
+                <div
+                  className={`transform transition-transform duration-200 ${isCVExpanded ? 'rotate-180' : 'rotate-0'}`}
+                >
+                  <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+                  </svg>
                 </div>
-                {cvItem.strengths && cvItem.strengths.length > 0 && (
-                  <div>
-                    <div className='font-bold text-green-600 mb-2'>Сильные стороны:</div>
-                    <ul className='list-disc list-inside space-y-1'>
-                      {cvItem.strengths.map((strength, idx) => (
-                        <li key={idx} className='text-[14px]'>
-                          {strength}
-                        </li>
-                      ))}
-                    </ul>
+              </div>
+            </CardHeader>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isCVExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <CardContent className='space-y-6 pt-0'>
+                {cv.map((cvItem, index) => (
+                  <div key={index} className='space-y-3'>
+                    <div className='flex items-center justify-between'>
+                      <h4 className='text-[16px] font-semibold capitalize'>{cvItem.name}</h4>
+                      <div className='text-[16px]'>
+                        <span className='font-bold'>Оценка: </span>
+                        <span className='text-blue-600 font-semibold'>{cvItem.score.toFixed(2)}/100</span>
+                      </div>
+                    </div>
+
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                      {cvItem.strengths && cvItem.strengths.length > 0 && (
+                        <div>
+                          <div className='font-bold text-green-600 mb-2'>Сильные стороны:</div>
+                          <ul className='list-disc list-inside space-y-1'>
+                            {cvItem.strengths.map((strength, idx) => (
+                              <li key={idx} className='text-[14px]'>
+                                {strength}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {cvItem.weaknesses && cvItem.weaknesses.length > 0 && (
+                        <div>
+                          <div className='font-bold text-red-600 mb-2'>Слабые стороны:</div>
+                          <ul className='list-disc list-inside space-y-1'>
+                            {cvItem.weaknesses.map((weakness, idx) => (
+                              <li key={idx} className='text-[14px]'>
+                                {weakness}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {index < cv.length - 1 && <Separator />}
                   </div>
-                )}
-                {cvItem.weaknesses && cvItem.weaknesses.length > 0 && (
-                  <div>
-                    <div className='font-bold text-red-600 mb-2'>Слабые стороны:</div>
-                    <ul className='list-disc list-inside space-y-1'>
-                      {cvItem.weaknesses.map((weakness, idx) => (
-                        <li key={idx} className='text-[14px]'>
-                          {weakness}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                ))}
               </CardContent>
-            </Card>
-          ))}
+            </div>
+          </Card>
         </div>
       )}
       {interview && (
         <div className='space-y-4'>
-          <h3 className='text-[20px] font-semibold'>Результаты интервью</h3>
           <Card>
-            <CardHeader>
-              <CardTitle className='text-[18px]'>Общая информация</CardTitle>
+            <CardHeader
+              className='cursor-pointer hover:bg-gray-50 transition-colors duration-200'
+              onClick={() => setIsInterviewExpanded(!isInterviewExpanded)}
+            >
+              <div className='flex items-center justify-between'>
+                <CardTitle className='text-[18px]'>Результаты интервью</CardTitle>
+                <div
+                  className={`transform transition-transform duration-200 ${isInterviewExpanded ? 'rotate-180' : 'rotate-0'}`}
+                >
+                  <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+                  </svg>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className='space-y-4'>
-              {interview.summary && (
-                <div>
-                  <div className='font-bold text-gray-700 mb-2'>Краткое резюме:</div>
-                  <p className='text-[14px] text-gray-600 leading-relaxed'>{interview.summary}</p>
-                </div>
-              )}
-              {interview.verdict && (
-                <div>
-                  <div className='font-bold text-gray-700 mb-2'>Вердикт:</div>
-                  <Badge className={`px-3 py-1 text-sm font-medium ${getVerdictColor(interview.verdict)}`}>
-                    {getVerdictText(interview.verdict)}
-                  </Badge>
-                </div>
-              )}
-            </CardContent>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isInterviewExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <CardContent className='space-y-6 pt-0'>
+                {/* Общая информация */}
+                {(interview.summary || interview.verdict) && (
+                  <div className='space-y-3'>
+                    {interview.summary && (
+                      <div>
+                        <div className='font-bold text-gray-700 mb-2'>Краткое резюме:</div>
+                        <p className='text-[14px] text-gray-600 leading-relaxed'>{interview.summary}</p>
+                      </div>
+                    )}
+                    {interview.verdict && (
+                      <div>
+                        <div className='font-bold text-gray-700 mb-2'>Вердикт:</div>
+                        <Badge className={`px-3 py-1 text-sm font-medium ${getVerdictColor(interview.verdict)}`}>
+                          {getVerdictText(interview.verdict)}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Разделитель если есть общая информация и оценка */}
+                {(interview.summary || interview.verdict) &&
+                  (interview.strengths?.length > 0 || interview.weaknesses?.length > 0) && <Separator />}
+
+                {/* Оценка кандидата */}
+                {(interview.strengths?.length > 0 || interview.weaknesses?.length > 0) && (
+                  <div className='space-y-4'>
+                    <h4 className='text-[16px] font-semibold'>Оценка кандидата</h4>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                      {interview.strengths && interview.strengths.length > 0 && (
+                        <div>
+                          <div className='font-bold text-green-600 mb-2'>Сильные стороны:</div>
+                          <ul className='list-disc list-inside space-y-1'>
+                            {interview.strengths.map((strength, idx) => (
+                              <li key={idx} className='text-[14px]'>
+                                {strength}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {interview.weaknesses && interview.weaknesses.length > 0 && (
+                        <div>
+                          <div className='font-bold text-red-600 mb-2'>Слабые стороны:</div>
+                          <ul className='list-disc list-inside space-y-1'>
+                            {interview.weaknesses.map((weakness, idx) => (
+                              <li key={idx} className='text-[14px]'>
+                                {weakness}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Разделитель если есть оценка и дополнительная информация */}
+                {(interview.strengths?.length > 0 || interview.weaknesses?.length > 0) &&
+                  (interview.recommendations || interview.risk_notes?.length > 0) && <Separator />}
+
+                {/* Дополнительная информация */}
+                {(interview.recommendations || interview.risk_notes?.length > 0) && (
+                  <div className='space-y-4'>
+                    <h4 className='text-[16px] font-semibold'>Дополнительная информация</h4>
+                    <div className='space-y-4'>
+                      {interview.recommendations && (
+                        <div>
+                          <div className='font-bold text-blue-600 mb-2'>Рекомендации:</div>
+                          <p className='text-[14px] text-gray-600 leading-relaxed'>{interview.recommendations}</p>
+                        </div>
+                      )}
+                      {interview.risk_notes && interview.risk_notes.length > 0 && (
+                        <div>
+                          <div className='font-bold text-orange-600 mb-2'>Заметки о рисках:</div>
+                          <ul className='list-disc list-inside space-y-1'>
+                            {interview.risk_notes.map((risk, idx) => (
+                              <li key={idx} className='text-[14px]'>
+                                {risk}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </div>
           </Card>
-
-          {interview.strengths && interview.strengths.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-[18px] text-green-600'>Сильные стороны</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className='list-disc list-inside space-y-1'>
-                  {interview.strengths.map((strength, idx) => (
-                    <li key={idx} className='text-[14px]'>
-                      {strength}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {interview.weaknesses && interview.weaknesses.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-[18px] text-red-600'>Слабые стороны</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className='list-disc list-inside space-y-1'>
-                  {interview.weaknesses.map((weakness, idx) => (
-                    <li key={idx} className='text-[14px]'>
-                      {weakness}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {interview.recommendations && (
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-[18px] text-blue-600'>Рекомендации</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className='text-[14px] text-gray-600 leading-relaxed'>{interview.recommendations}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {interview.risk_notes && interview.risk_notes.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-[18px] text-orange-600'>Заметки о рисках</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className='list-disc list-inside space-y-1'>
-                  {interview.risk_notes.map((risk, idx) => (
-                    <li key={idx} className='text-[14px]'>
-                      {risk}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
     </div>

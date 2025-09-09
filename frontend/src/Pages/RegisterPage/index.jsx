@@ -10,6 +10,7 @@ const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('applicant');
   const [resumeFile, setResumeFile] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,6 +43,15 @@ const RegisterPage = () => {
     }
   };
 
+  const handleRoleChange = (e) => {
+    const newRole = e.target.value;
+    setRole(newRole);
+    // Очищаем файл резюме при смене роли на HR
+    if (newRole === 'hr') {
+      setResumeFile(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -56,7 +66,7 @@ const RegisterPage = () => {
       return;
     }
 
-    if (!resumeFile) {
+    if (role === 'applicant' && !resumeFile) {
       setError('Пожалуйста, прикрепите резюме');
       return;
     }
@@ -65,7 +75,7 @@ const RegisterPage = () => {
 
     try {
       console.log('Проверяем localStorage перед регистрацией:', localStorage.getItem('redirectAfterLogin'));
-      const result = await register(email, password, resumeFile);
+      const result = await register(email, password, resumeFile, role);
       console.log('Проверяем localStorage после регистрации:', localStorage.getItem('redirectAfterLogin'));
 
       if (result.success) {
@@ -120,6 +130,26 @@ const RegisterPage = () => {
         {/* Заголовок */}
         <h1 className='text-2xl font-bold text-white text-center mb-8'>Регистрация</h1>
 
+        {/* Плашка о недоступности HR регистрации */}
+        {role === 'hr' && (
+          <div className='bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-[10px] mb-4'>
+            <div className='flex items-center'>
+              <div className='flex-shrink-0'>
+                <svg className='h-5 w-5 text-yellow-400' viewBox='0 0 20 20' fill='currentColor'>
+                  <path
+                    fillRule='evenodd'
+                    d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z'
+                    clipRule='evenodd'
+                  />
+                </svg>
+              </div>
+              <div className='ml-3'>
+                <p className='text-sm font-medium'>Регистрация HR не будет доступна в продакшене</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Сообщение об ошибке */}
         {error && (
           <div className='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-[10px] mb-4'>{error}</div>
@@ -141,6 +171,23 @@ const RegisterPage = () => {
               className='w-full p-3 rounded-[10px] border-0 bg-[#F5F2EE] text-[#303030] focus:ring-2 focus:ring-white focus:bg-[#F5F2EE] hover:bg-[#F5F2EE]'
               required
             />
+          </div>
+
+          {/* Роль */}
+          <div className='space-y-2'>
+            <Label htmlFor='role' className='text-white font-medium'>
+              Роль
+            </Label>
+            <select
+              id='role'
+              value={role}
+              onChange={handleRoleChange}
+              className='w-full p-3 rounded-[10px] border-0 bg-[#F5F2EE] text-[#303030] focus:ring-2 focus:ring-white focus:bg-[#F5F2EE] hover:bg-[#F5F2EE]'
+              required
+            >
+              <option value='applicant'>Кандидат</option>
+              <option value='hr'>HR</option>
+            </select>
           </div>
 
           {/* Пароль */}
@@ -175,22 +222,24 @@ const RegisterPage = () => {
             />
           </div>
 
-          {/* Загрузка резюме */}
-          <div className='space-y-2'>
-            <Label htmlFor='resume' className='text-white font-medium'>
-              Резюме (PDF, DOC, DOCX)
-            </Label>
-            <div className='relative'>
-              <Input
-                id='resume'
-                type='file'
-                onChange={handleFileChange}
-                accept='.pdf,.doc,.docx'
-                className='w-full p-3 rounded-[10px] border-0 bg-[#F5F2EE] text-[#303030] focus:ring-2 focus:ring-white focus:bg-[#F5F2EE] hover:bg-[#F5F2EE] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-[#eb5e28] hover:file:bg-gray-100 h-[55px]'
-                required
-              />
+          {/* Загрузка резюме - только для кандидатов */}
+          {role === 'applicant' && (
+            <div className='space-y-2'>
+              <Label htmlFor='resume' className='text-white font-medium'>
+                Резюме (PDF, DOC, DOCX)
+              </Label>
+              <div className='relative'>
+                <Input
+                  id='resume'
+                  type='file'
+                  onChange={handleFileChange}
+                  accept='.pdf,.doc,.docx'
+                  className='w-full p-3 rounded-[10px] border-0 bg-[#F5F2EE] text-[#303030] focus:ring-2 focus:ring-white focus:bg-[#F5F2EE] hover:bg-[#F5F2EE] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-[#eb5e28] hover:file:bg-gray-100 h-[55px]'
+                  required
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Кнопка регистрации */}
           <Button

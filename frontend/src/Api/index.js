@@ -88,12 +88,14 @@ export const login = async (email, password) => {
   return response.data;
 };
 
-export const register = async (email, password, resumeFile) => {
+export const register = async (email, password, resumeFile, role = 'applicant') => {
   const formData = new FormData();
   formData.append('email', email);
   formData.append('password', password);
-  formData.append('role', 'applicant');
-  formData.append('cv', resumeFile);
+  formData.append('role', role);
+  if (resumeFile) {
+    formData.append('cv', resumeFile);
+  }
 
   const response = await apiClient.post('/api/auth/register', formData, {
     headers: {
@@ -104,7 +106,7 @@ export const register = async (email, password, resumeFile) => {
 };
 
 // API функция для загрузки CV
-export const uploadCV = async (file, vacancyId = null) => {
+export const uploadCVFile = async (file, vacancyId = null) => {
   const formData = new FormData();
   formData.append('file', file);
   
@@ -126,6 +128,12 @@ export const uploadCV = async (file, vacancyId = null) => {
   return response.data;
 };
 
+// API функция для получения ссылки на интервью
+export const getInterviewLink = async (vacancyId) => {
+  const response = await apiClient.get(`/api/applicant/job_applications/${vacancyId}/interview?vacancy_id=${vacancyId}`);
+  return response.data;
+};
+
 export const api = {
   http,
   getVacancies,
@@ -134,5 +142,6 @@ export const api = {
   getApplicantApplications,
   login,
   register,
-  uploadCV,
+  uploadCV: uploadCVFile,
+  getInterviewLink,
 };
