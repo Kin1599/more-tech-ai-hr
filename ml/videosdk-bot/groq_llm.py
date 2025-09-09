@@ -28,7 +28,7 @@ class GroqLLM(LLM):
         self,
         *,
         api_key: str | None = None,
-        model: str = "llama-3.1-70b-versatile",
+        model: str = "qwen/qwen3-32b",
         base_url: str = "https://api.groq.com/openai/v1",
         temperature: float = 0.7,
         tool_choice: ToolChoice = "auto",
@@ -43,7 +43,7 @@ class GroqLLM(LLM):
 
         Args:
             api_key (Optional[str], optional): Groq API key. Defaults to None.
-            model (str): The model to use for the LLM plugin. Defaults to "llama-3.1-70b-versatile".
+            model (str): The model to use for the LLM plugin. Defaults to "qwen/qwen3-32b".
             base_url (str): The base URL for the Groq API. Defaults to "https://api.groq.com/openai/v1".
             temperature (float): The temperature to use for the LLM plugin. Defaults to 0.7.
             tool_choice (ToolChoice): The tool choice to use for the LLM plugin. Defaults to "auto".
@@ -89,7 +89,7 @@ class GroqLLM(LLM):
     def create(
         *,
         api_key: str | None = None,
-        model: str = "llama-3.1-70b-versatile",
+        model: str = "qwen/qwen3-32b",
         base_url: str = "https://api.groq.com/openai/v1",
         temperature: float = 0.7,
         tool_choice: ToolChoice = "auto",
@@ -113,16 +113,7 @@ class GroqLLM(LLM):
 
     def get_supported_models(self) -> list[str]:
         """Get list of supported Groq LLM models"""
-        return [
-            # Llama модели (актуальные)
-            "llama-3.1-8b-instant", 
-            "llama-3.2-1b-preview",
-            "llama-3.2-3b-preview",
-            "llama-3.2-11b-vision-preview",
-            "llama-3.2-90b-vision-preview",
-            "llama-guard-3-8b",
-            "llava-v1.5-7b-4096-preview",
-            
+        return [            
             # Mixtral модели
             "mixtral-8x7b-32768",
             
@@ -362,7 +353,7 @@ class OpenAILLM(GroqLLM):
         self,
         *,
         api_key: str | None = None,
-        model: str = "llama-3.1-70b-versatile",
+        model: str = "qwen/qwen3-32b",
         base_url: str | None = None,
         temperature: float = 0.7,
         tool_choice: ToolChoice = "auto",

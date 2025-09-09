@@ -847,7 +847,7 @@ class ESpeechTTS:
         return sr, wave
 
 # ===== INTEGRATED CHATBOT CLASS =====
-DEFAULT_MODEL = "mixtral-8x7b-32768"  # Change if you prefer llama3-70b-8192, etc.
+DEFAULT_MODEL = "mixtral-8x7b-32768"  # Change if you prefer qwen/qwen3-32b, etc.
 
 class LangChainGroqChatbot:
     """Stateful chat assistant backed by Groq via LangChain.
@@ -1248,7 +1248,7 @@ async def start_session(context: JobContext):
                     silence_duration=config.stt_silence_duration,
                 ),
                 llm=GroqLLM(
-                    model="llama-3.1-8b-instant",
+                    model="qwen/qwen3-32b",
                     temperature=config.llm_temperature,
                 ),
                 tts=GroqTTSFixed(model="playai-tts"),

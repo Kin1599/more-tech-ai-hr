@@ -29,7 +29,7 @@ async def start_session(context: JobContext):
     # Create pipeline
     pipeline = CascadingPipeline(
         stt=CartesiaSTT(model="ink-whisper", language="ru"),
-        llm=GroqLLM(model="llama-3.1-8b-instant"),
+        llm=GroqLLM(model="qwen/qwen3-32b"),
         tts=OpenAITTS(model="tts-1"),
         vad=SileroVAD(),
         turn_detector=TurnDetector()
