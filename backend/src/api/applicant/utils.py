@@ -11,6 +11,7 @@ from .helpers import _extract_text_from_file
 from ...core.database import SessionLocal
 from ...ml.cv_estimator import evaluate_cv
 from ...models.models import JobApplication, JobApplicationCVEvaluation, JobApplicationEvent, Vacancy, ApplicantResumeVersion
+from ..interview.service import create_videosdk_room, persist_meeting_for_application
 
 def format_datetime(dt: datetime) -> str:
     """Форматирует дату и время в ISO-формат."""
@@ -81,6 +82,13 @@ def evaluate_resume_background(job_application_id: int, vacancy_id: int, resume_
                     else:
                         job_application.status = JobApplicationStatus.interview
                         req_type = "next"
+
+                        try:
+                            room_id, join_link = create_videosdk_room()
+                            persist_meeting_for_application(db, job_application.id, room_id, join_link)
+                            print(f"[Interview] Created room {room_id} for application {job_application.id}")
+                        except Exception as e:
+                            print(f"[Interview] Failed to create room: {e}")
 
         except Exception as e:
             print(f"Ошибка при оценке резюме: {str(e)}")
