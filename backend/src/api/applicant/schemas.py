@@ -42,6 +42,14 @@ class JobApplicationListItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class CVFeedback(BaseModel):
+    name: str
+    score: int
+    strengths: list[str]
+    weaknesses: list[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
 class JobApplicationDetail(BaseModel):
     applicationId: int
     name: str
@@ -51,6 +59,7 @@ class JobApplicationDetail(BaseModel):
     status: JobApplicationStatus
     interviewLink: Optional[str] = None
     interviewRecommendation: Optional[str] = None
+    cvFeedback: Optional[list[CVFeedback]] = None
 
     model_config = ConfigDict(from_attributes=True)
 

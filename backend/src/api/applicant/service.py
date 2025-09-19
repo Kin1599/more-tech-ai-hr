@@ -8,12 +8,13 @@ from ...models.models import (
     ApplicantProfile,
     ApplicantResumeVersion,
     JobApplication,
+    JobApplicationCVEvaluation,
     JobApplicationEvent,
     Vacancy,
     HRProfile,
     Meeting,
 )
-from .schemas import JobApplicationListItem, JobApplicationDetail, HRBrief, InterviewLinkResponse, JobApplicationStatus
+from .schemas import JobApplicationListItem, JobApplicationDetail, HRBrief, InterviewLinkResponse, JobApplicationStatus, CVFeedback
 from .helpers import _vacancy_to_response
 from .utils import _generate_join_token, evaluate_resume_background
 
@@ -121,6 +122,26 @@ def get_job_application(db: Session, user_id: int, vacancy_id: int) -> JobApplic
         .first()
     )
 
+    # Получаем CV feedback (только если статус не cvReview)
+    cv_feedback = None
+    if application.status != "cvReview":
+        cv_evaluations = (
+            db.query(JobApplicationCVEvaluation)
+            .filter_by(job_application_id=application.id)
+            .all()
+        )
+        
+        if cv_evaluations:
+            cv_feedback = [
+                CVFeedback(
+                    name=eval.name,
+                    score=eval.score,
+                    strengths=eval.strengths,
+                    weaknesses=eval.weaknesses
+                )
+                for eval in cv_evaluations
+            ]
+
     return JobApplicationDetail(
         applicationId=application.id,
         name=vacancy.name or "",
@@ -130,6 +151,7 @@ def get_job_application(db: Session, user_id: int, vacancy_id: int) -> JobApplic
         status=application.status,
         interviewLink=meeting.meetLink if meeting else None,
         interviewRecommendation=meeting.hrContact if meeting else None,
+        cvFeedback=cv_feedback,
     )
 
 

@@ -1,5 +1,6 @@
 
 import os
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api.ping.router import router as ping_router
@@ -9,7 +10,12 @@ from .api.hr.router import router as hr_router
 from .api.user.router import router as user_router
 from .api.interview.router import router as interview_router
 from .core.database import Base, engine
+from .ml.model_loader import ml_lifespan_manager
 from dotenv import load_dotenv
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -18,7 +24,8 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="API",
-    root_path="/api"
+    root_path="/api",
+    lifespan=ml_lifespan_manager
 )
 
 origins = os.getenv("ORIGINS").split(",")

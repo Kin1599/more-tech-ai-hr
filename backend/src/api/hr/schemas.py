@@ -23,6 +23,12 @@ class VacancyStatusUpdateRequest(BaseModel):
 class VacancyStatusUpdateResponse(BaseModel):
     status: VacancyStatusEnum
 
+class VacancyPromptUpdateRequest(BaseModel):
+    prompt: str
+
+class VacancyPromptUpdateResponse(BaseModel):
+    prompt: str
+
 class ApplicantStatusEnum(str, Enum):
     rejected = "rejected"
     cvReview = "cvReview"
@@ -68,6 +74,8 @@ class VacancyDetailApplicant(BaseModel):
     score: float
     status: ApplicantStatusEnum
     checked: Optional[bool] = False
+    hasSimilarResume: Optional[bool] = False
+    similarResumeApplicantId: Optional[int] = None
 
 class VacancyDetailResponse(VacancyResponse):
     detailResponses: List[VacancyDetailApplicant]

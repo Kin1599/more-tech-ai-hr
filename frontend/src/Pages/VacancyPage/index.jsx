@@ -2,6 +2,7 @@ import React, {useState, useRef, useEffect} from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
 import {useStore} from '../../App/store';
 import {Button} from '../../components/ui/button';
+import {Textarea} from '../../components/ui/textarea';
 import StatusDropdown from './components/StatusDropdown';
 import ResponsesTable from './components/ResponsesTable';
 import vtbLogo from '../../Shared/imgs/vtb.png';
@@ -11,7 +12,7 @@ import {capitalizeFirst} from '../../lib/utils';
 const VacancyPage = () => {
   const {id} = useParams();
   const navigate = useNavigate();
-  const {updateVacancy, uploadCV, fetchHRVacancy, changeVacancyStatus, successToast, errorToast} = useStore();
+  const {updateVacancy, uploadCV, fetchHRVacancy, changeVacancyStatus, updateVacancyAIInstructions, successToast, errorToast} = useStore();
   const fileInputRef = useRef(null);
 
   // Проверяем, создаем ли новую вакансию
@@ -33,6 +34,11 @@ const VacancyPage = () => {
   // Состояние для уведомления о копировании
   const [linkCopied, setLinkCopied] = useState(false);
 
+  // Состояние для AI HR указаний
+  const [aiHrInstructions, setAiHrInstructions] = useState('');
+  const [isInstructionsExpanded, setIsInstructionsExpanded] = useState(false);
+  const [isSavingInstructions, setIsSavingInstructions] = useState(false);
+
   // Загружаем вакансию при монтировании компонента
   useEffect(() => {
     if (id && !isNewVacancy) {
@@ -43,6 +49,8 @@ const VacancyPage = () => {
           const result = await fetchHRVacancy(parseInt(id));
           if (result.success) {
             setVacancy(result.data);
+            // Загружаем AI HR указания
+            setAiHrInstructions(result.data.prompt || '');
             // Обновляем вакансию в store
             updateVacancy(parseInt(id), result.data);
           }
@@ -141,6 +149,29 @@ const VacancyPage = () => {
       document.body.removeChild(textArea);
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 3000);
+    }
+  };
+
+  // Функция для сохранения AI HR указаний
+  const handleSaveAIInstructions = async () => {
+    if (!vacancy?.vacancyId) return;
+
+    setIsSavingInstructions(true);
+    try {
+      const result = await updateVacancyAIInstructions(vacancy.vacancyId, aiHrInstructions);
+      
+      if (result.success) {
+        successToast('Указания сохранены', 'Дополнительные указания для AI HR успешно обновлены');
+        // Обновляем локальное состояние вакансии
+        setVacancy(prev => ({ ...prev, prompt: aiHrInstructions }));
+      } else {
+        errorToast('Ошибка сохранения', `Ошибка при сохранении указаний: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при сохранении AI HR указаний:', error);
+      errorToast('Ошибка', 'Произошла ошибка при сохранении указаний');
+    } finally {
+      setIsSavingInstructions(false);
     }
   };
 
@@ -300,6 +331,59 @@ const VacancyPage = () => {
           >
             <div className='mt-2 bg-white rounded-lg border border-gray-200 p-4'>
               <p className='text-gray-700 leading-relaxed'>{vacancy.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Дропдаун с AI HR указаниями */}
+      {!isNewVacancy && vacancy && (
+        <div>
+          <div
+            className='flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors duration-200 p-4 rounded-lg border border-gray-200'
+            onClick={() => setIsInstructionsExpanded(!isInstructionsExpanded)}
+          >
+            <h3 className='text-[24px] font-semibold'>Дополнительные указания для AI HR</h3>
+            <div
+              className={`transform transition-transform duration-300 ease-in-out ${isInstructionsExpanded ? 'rotate-180' : 'rotate-0'}`}
+            >
+              <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+              </svg>
+            </div>
+          </div>
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              isInstructionsExpanded ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className='mt-2 bg-white rounded-lg border border-gray-200 p-4 space-y-4'>
+              <p className='text-gray-600 text-sm'>
+                Здесь вы можете добавить дополнительные указания для AI HR системы, которые будут учитываться при анализе кандидатов и проведении собеседований.
+              </p>
+              <Textarea
+                value={aiHrInstructions}
+                onChange={(e) => setAiHrInstructions(e.target.value)}
+                placeholder='Введите дополнительные указания для AI HR...'
+                className='min-h-32 resize-none'
+                rows={6}
+              />
+              <div className='flex justify-end'>
+                <Button
+                  onClick={handleSaveAIInstructions}
+                  disabled={isSavingInstructions}
+                  className='bg-[#303030] hover:bg-[#eb5e28] hover:scale-105 transition-all duration-200 cursor-pointer'
+                >
+                  {isSavingInstructions ? (
+                    <>
+                      <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
+                      Сохранение...
+                    </>
+                  ) : (
+                    'Сохранить указания'
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

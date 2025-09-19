@@ -9,10 +9,13 @@ from .schemas import (
     VacancyDetailResponse,
     VacancyResponse,
     VacancyStatusUpdateRequest,
-    VacancyStatusUpdateResponse, 
+    VacancyStatusUpdateResponse,
+    VacancyPromptUpdateRequest,
+    VacancyPromptUpdateResponse,
 )
 from .service import (
     change_vacancy_status,
+    change_vacancy_prompt,
     get_applicant_detail,
     get_vacancies, 
     create_vacancy,
@@ -84,6 +87,23 @@ def change_vacancy_status_endpoint(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to change vacancy status: {str(e)}")
+
+
+@router.put("/vacancies/{vacancy_id}/prompt", response_model=VacancyPromptUpdateResponse, dependencies=[Depends(get_current_hr_user)])
+def change_vacancy_prompt_endpoint(
+    vacancy_id: int,
+    body: VacancyPromptUpdateRequest,
+    db: Session = Depends(get_session),
+):
+    """Обновить AI HR указания для вакансии."""
+    try:
+        return change_vacancy_prompt(db=db, vacancy_id=vacancy_id, new_prompt=body.prompt)
+    except FileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vacancy not found")
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to change vacancy prompt: {str(e)}")
 
 
 

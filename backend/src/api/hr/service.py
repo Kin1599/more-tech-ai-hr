@@ -8,6 +8,7 @@ from .helpers import _apply_mapped_to_vacancy, _vacancy_to_response
 from ...models.models import HRProfile, User, Vacancy, JobApplication
 from .utils import parse_vacancy_docx, to_decimal, vacancy_to_txt
 from .schemas import ApplicantDetailResponse, CVEvaluation, InterviewDetail, InterviewVerdictEnum, VacancyDetailResponse, VacancyDetailApplicant
+from ...ml.resume_similarity import check_all_applications_similarity
 
 
 def get_vacancies(db: Session, offset: int = 0, limit: int = 20):
@@ -101,6 +102,19 @@ def change_vacancy_status(db: Session, vacancy_id: int, new_status: str):
     return {"status": v.status}
 
 
+def change_vacancy_prompt(db: Session, vacancy_id: int, new_prompt: str):
+    v = db.get(Vacancy, vacancy_id)
+    if not v:
+        raise FileNotFoundError("vacancy not found")
+
+    v.prompt = new_prompt
+    db.add(v)
+    db.commit()
+    db.refresh(v)
+
+    return {"prompt": v.prompt}
+
+
 
 def get_vacancy_detail(db: Session, vacancy_id: int) -> VacancyDetailResponse:
     """Получить детальную информацию о вакансии и её откликах."""
@@ -118,6 +132,9 @@ def get_vacancy_detail(db: Session, vacancy_id: int) -> VacancyDetailResponse:
 
     base = _vacancy_to_response(v)
 
+    # Проверяем схожесть резюме для всех заявок
+    similarity_results = check_all_applications_similarity(db, vacancy_id)
+
     detail = []
     for job_application in (v.job_applications or []):
         prof = getattr(job_application, "applicant_profile", None)
@@ -130,6 +147,10 @@ def get_vacancy_detail(db: Session, vacancy_id: int) -> VacancyDetailResponse:
         scores = [eval.score for eval in evaluations if isinstance(eval.score, (int, float)) and eval.name != "error"]
         score = float(mean(scores)) if scores else 0.0
 
+        # Получаем информацию о схожести резюме
+        similar_applicant_id = similarity_results.get(job_application.id)
+        has_similar_resume = similar_applicant_id is not None
+
         detail.append(VacancyDetailApplicant(
             applicationId=job_application.id,
             applicantId=job_application.applicant_id,
@@ -137,6 +158,8 @@ def get_vacancy_detail(db: Session, vacancy_id: int) -> VacancyDetailResponse:
             score=score,
             status=job_application.status,
             checked=False,
+            hasSimilarResume=has_similar_resume,
+            similarResumeApplicantId=similar_applicant_id,
         ))
 
     return VacancyDetailResponse(

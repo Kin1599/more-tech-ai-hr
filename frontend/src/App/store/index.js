@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {getVacancies, getVacancy, getHRVacancy, getHRApplicant, updateVacancyStatus, getApplicantApplications, getApplicantVacancy, applyToVacancy, getApplicantJobApplications, getApplicantJobApplication, uploadResume, login, register, uploadCVFile, updateUserProfile} from '../../Api';
+import {getVacancies, getVacancy, getHRVacancy, getHRApplicant, updateVacancyStatus, updateVacancyPrompt, getApplicantApplications, getApplicantVacancy, applyToVacancy, getApplicantJobApplications, getApplicantJobApplication, uploadResume, login, register, uploadCVFile, updateUserProfile} from '../../Api';
 import {setAuthToken, setStoredToken, removeStoredToken, getStoredToken} from '../../Api/config';
 
 export const useStore = create((set) => {
@@ -419,6 +419,28 @@ export const useStore = create((set) => {
         return { 
           success: false, 
           error: error.response?.data?.detail || 'Ошибка при изменении статуса вакансии' 
+        };
+      }
+    },
+
+    // Функция для обновления AI HR указаний
+    updateVacancyAIInstructions: async (vacancyId, prompt) => {
+      try {
+        await updateVacancyPrompt(vacancyId, prompt);
+        
+        // Обновляем prompt в локальном состоянии
+        set((state) => ({
+          vacancies: state.vacancies.map(v => 
+            v.vacancyId === vacancyId ? { ...v, prompt } : v
+          )
+        }));
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Ошибка при обновлении AI HR указаний:', error);
+        return { 
+          success: false, 
+          error: error.response?.data?.detail || 'Ошибка при обновлении AI HR указаний' 
         };
       }
     },

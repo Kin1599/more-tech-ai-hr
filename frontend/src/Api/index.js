@@ -36,6 +36,14 @@ export const updateVacancyStatus = async (vacancyId, status) => {
   return response.data;
 };
 
+// API функция для обновления AI HR указаний
+export const updateVacancyPrompt = async (vacancyId, prompt) => {
+  const response = await apiClient.put(`/api/hr/vacancies/${vacancyId}/prompt`, {
+    prompt
+  });
+  return response.data;
+};
+
 // API функция для получения откликов апликанта
 export const getApplicantApplications = async () => {
   const response = await apiClient.get(`/api/applicant/vacancies`);
@@ -151,6 +159,7 @@ export const api = {
   getVacancies,
   getVacancy,
   updateVacancyStatus,
+  updateVacancyPrompt,
   getApplicantApplications,
   login,
   register,

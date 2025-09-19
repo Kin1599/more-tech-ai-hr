@@ -37,7 +37,7 @@ except ImportError as e:  # pragma: no cover
 
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 
-DEFAULT_MODEL = "mixtral-8x7b-32768"
+DEFAULT_MODEL = "qwen3-32b"
 
 SYSTEM_PROMPT_BASE = (
 	"Ты оцениваешь соответствие резюме вакансии строго по заданным критериям. Не выдумывай факты. "

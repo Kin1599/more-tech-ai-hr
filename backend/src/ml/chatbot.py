@@ -45,7 +45,7 @@ from langchain.schema import (
 )
 
 
-DEFAULT_MODEL = "mixtral-8x7b-32768"  # Change if you prefer qwen/qwen3-32b, etc.
+DEFAULT_MODEL = "qwen3-32b"  # Change if you prefer qwen/qwen3-32b, etc.
 
 
 class LangChainGroqChatbot:
