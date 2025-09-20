@@ -52,6 +52,31 @@ services:
     ports:
       - "3000:3000"
 
+  admin-panel:
+    container_name: "admin_panel_without_traefik"
+    build:
+      context: ./backend/hr_admin_panel
+      dockerfile: Dockerfile.admin
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=${DB_PORT}
+      - DJANGO_SETTINGS_MODULE=admin_panel.settings
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8002:8000"  # Внешний порт 8002 → внутренний порт 8000
+    command: >
+      sh -c "python manage.py migrate &&
+             python create_admin.py &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
 volumes:
   pg_project:
   backend_uploads:

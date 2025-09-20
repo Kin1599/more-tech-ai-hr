@@ -76,5 +76,37 @@ services:
       - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.routers.frontend.tls.certresolver=le"
 
+  admin-panel:
+    container_name: "admin-panel"
+    build:
+      context: ./backend/hr_admin_panel
+      dockerfile: Dockerfile.admin
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=${DB_PORT}
+      - DJANGO_SETTINGS_MODULE=admin_panel.settings
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin-panel.entrypoints=websecure"
+      - "traefik.http.routers.admin-panel.rule=Host(`${HOST}`) && PathPrefix(`/admin`)"
+      - "traefik.http.services.admin-panel.loadbalancer.server.port=8000"
+      - "traefik.http.routers.admin-panel.tls=true"
+      - "traefik.http.routers.admin-panel.tls.certresolver=le"
+    command: >
+      sh -c "python manage.py migrate &&
+             python create_admin.py &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
 volumes:
   pg_project:

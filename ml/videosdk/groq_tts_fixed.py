@@ -158,7 +158,7 @@ class GroqTTSFixed(TTS):
     async def _synthesize_audio(
         self, text: str, voice_id: Optional[str] = None
     ) -> None:
-        """Call Groq API to synthesize audio"""
+        """Call Groq API to synthesize audio with streaming support"""
         if not text.strip() or self._interrupted or self._closed:
             return
             
@@ -177,24 +177,28 @@ class GroqTTSFixed(TTS):
                 "speed": self.speed,
             }
 
-            # Исправляем проблему со streaming response
-            response = await self._client.post(
-                GROQ_TTS_ENDPOINT,
-                headers=headers,
-                json=payload,
-            )
-            response.raise_for_status()
-
-            if self.response_format == "wav":
-                audio_data = response.content  # Получаем весь контент сразу
-                if audio_data and not self._interrupted:
-                    pcm_data = self._extract_pcm_from_wav(audio_data)
-                    await self._stream_audio_chunks(pcm_data)
+            # Используем streaming для больших текстов
+            if len(text) > 100:
+                await self._synthesize_audio_streaming(headers, payload)
             else:
-                self.emit(
-                    "error",
-                    f"Format {self.response_format} requires decoding, which is not implemented yet",
+                # Для коротких текстов используем обычный запрос
+                response = await self._client.post(
+                    GROQ_TTS_ENDPOINT,
+                    headers=headers,
+                    json=payload,
                 )
+                response.raise_for_status()
+
+                if self.response_format == "wav":
+                    audio_data = response.content
+                    if audio_data and not self._interrupted:
+                        pcm_data = self._extract_pcm_from_wav(audio_data)
+                        await self._stream_audio_chunks(pcm_data)
+                else:
+                    self.emit(
+                        "error",
+                        f"Format {self.response_format} requires decoding, which is not implemented yet",
+                    )
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:
@@ -224,6 +228,60 @@ class GroqTTSFixed(TTS):
         except Exception as e:
             if not self._interrupted and not self._closed:
                 self.emit("error", f"Groq TTS API call failed: {str(e)}")
+
+    async def _synthesize_audio_streaming(self, headers: dict, payload: dict) -> None:
+        """Streaming synthesis for large texts by breaking into smaller chunks"""
+        if self._interrupted or self._closed:
+            return
+            
+        try:
+            # Разбиваем текст на предложения для потокового синтеза
+            sentences = self._split_text_into_sentences(payload["input"])
+            
+            for sentence in sentences:
+                if self._interrupted or self._closed:
+                    break
+                    
+                if not sentence.strip():
+                    continue
+                
+                # Создаем payload для предложения
+                sentence_payload = payload.copy()
+                sentence_payload["input"] = sentence
+                
+                # Синтезируем предложение
+                response = await self._client.post(
+                    GROQ_TTS_ENDPOINT,
+                    headers=headers,
+                    json=sentence_payload,
+                )
+                response.raise_for_status()
+
+                if self.response_format == "wav":
+                    audio_data = response.content
+                    if audio_data and not self._interrupted:
+                        pcm_data = self._extract_pcm_from_wav(audio_data)
+                        await self._stream_audio_chunks(pcm_data)
+                        
+        except Exception as e:
+            if not self._interrupted and not self._closed:
+                self.emit("error", f"Groq TTS streaming synthesis failed: {str(e)}")
+
+    def _split_text_into_sentences(self, text: str) -> list[str]:
+        """Split text into sentences for streaming synthesis"""
+        import re
+        
+        # Разбиваем по знакам препинания
+        sentences = re.split(r'[.!?]+', text)
+        
+        # Фильтруем пустые и слишком короткие предложения
+        filtered_sentences = []
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if len(sentence) > 10:  # Минимальная длина предложения
+                filtered_sentences.append(sentence)
+        
+        return filtered_sentences
 
     async def _stream_audio_chunks(self, audio_bytes: bytes) -> None:
         """Stream audio data in chunks at 24kHz"""

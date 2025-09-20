@@ -677,6 +677,77 @@ class VisionModelAdapter(BaseModelAdapter):
         """Создать Vision модель."""
         provider = self.config.get("provider")
         
+        # Проверяем, нужна ли потоковая версия
+        enable_streaming = self.config.get("enable_streaming", False)
+        
+        if enable_streaming:
+            return self._create_streaming_vision(provider)
+        
+        if provider == "google_gemini":
+            return self._create_gemini_vision()
+        elif provider == "openai_vision":
+            return self._create_openai_vision()
+        elif provider == "anthropic_vision":
+            return self._create_anthropic_vision()
+        elif provider == "azure_vision":
+            return self._create_azure_vision()
+        elif provider == "local_llava":
+            return self._create_llava_vision()
+        elif provider == "local_cogvlm":
+            return self._create_cogvlm_vision()
+        elif provider == "local_blip2":
+            return self._create_blip2_vision()
+        elif provider == "local_instructblip":
+            return self._create_instructblip_vision()
+        elif provider == "local_minigpt4":
+            return self._create_minigpt4_vision()
+        elif provider == "local_qwen_vl":
+            return self._create_qwen_vl_vision()
+        elif provider == "local_internvl":
+            return self._create_internvl_vision()
+        elif provider == "local_moondream":
+            return self._create_moondream_vision()
+        elif provider == "local_bakllava":
+            return self._create_bakllava_vision()
+        elif provider == "custom_endpoint":
+            return self._create_custom_vision()
+        else:
+            raise ModelCreationError(f"Unsupported Vision provider: {provider}")
+    
+    def _create_streaming_vision(self, provider: str) -> Any:
+        """Создать потоковую Vision модель"""
+        try:
+            from .streaming_vlm import StreamingVLMFactory
+            
+            # Подготавливаем конфигурацию для потокового VLM
+            streaming_config = self.config.copy()
+            streaming_config["provider"] = provider
+            
+            # Добавляем API ключ если нужно
+            if provider in ["groq", "openai"] and "api_key_name" in self.config:
+                import os
+                api_key_name = self.config["api_key_name"]
+                streaming_config["api_key"] = os.getenv(api_key_name)
+            
+            streaming_vlm = StreamingVLMFactory.create_streaming_vlm(streaming_config)
+            
+            if streaming_vlm:
+                # Создаем адаптер для совместимости
+                from .streaming_vlm import StreamingVLMAdapter
+                return StreamingVLMAdapter(streaming_vlm)
+            else:
+                # Fallback к обычной модели
+                return self._create_regular_vision(provider)
+                
+        except ImportError as e:
+            logger.warning(f"Streaming VLM not available: {e}, falling back to regular VLM")
+            return self._create_regular_vision(provider)
+        except Exception as e:
+            logger.error(f"Error creating streaming VLM: {e}, falling back to regular VLM")
+            return self._create_regular_vision(provider)
+    
+    def _create_regular_vision(self, provider: str) -> Any:
+        """Создать обычную Vision модель (fallback)"""
         if provider == "google_gemini":
             return self._create_gemini_vision()
         elif provider == "openai_vision":

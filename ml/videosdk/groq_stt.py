@@ -116,13 +116,13 @@ class GroqSTT(BaseSTT):
         await self._transcribe_http(audio_frames)
 
     async def _transcribe_http(self, audio_frames: bytes) -> None:
-        """HTTP-based transcription using Groq audio/transcriptions API with custom VAD"""
+        """HTTP-based transcription using Groq audio/transcriptions API with streaming support"""
         if not audio_frames or self._cancelled:
             return
             
         self._audio_buffer.extend(audio_frames)
         
-        # Custom VAD logic
+        # Custom VAD logic with streaming optimization
         is_silent_chunk = self._is_silent(audio_frames)
         
         if not is_silent_chunk:
@@ -130,6 +130,10 @@ class GroqSTT(BaseSTT):
                 self._is_speaking = True
                 global_event_emitter.emit("speech_started")
             self._silence_frames = 0
+            
+            # Для длинных аудио сессий обрабатываем промежуточные результаты
+            if len(self._audio_buffer) > self.input_sample_rate * 2 * 5:  # 5 секунд аудио
+                await self._process_audio_buffer_streaming()
         else:
             if self._is_speaking and not self._cancelled:
                 self._silence_frames += len(audio_frames) // 4  # Approximate frame count
@@ -162,6 +166,29 @@ class GroqSTT(BaseSTT):
         if len(audio_data) < min_audio_length:
             return
         
+        await self._transcribe_audio_data(audio_data, is_final=True)
+    
+    async def _process_audio_buffer_streaming(self) -> None:
+        """Process audio buffer for streaming transcription (partial results)"""
+        if not self._audio_buffer or self._cancelled:
+            return
+            
+        # Берем только последние 3 секунды для промежуточных результатов
+        streaming_length = self.input_sample_rate * 2 * 3  # 3 секунды
+        if len(self._audio_buffer) < streaming_length:
+            return
+            
+        audio_data = bytes(self._audio_buffer[-streaming_length:])
+        
+        # Минимальная длительность для обработки
+        min_audio_length = self.input_sample_rate * 2 * 0.5  # 0.5 секунды
+        if len(audio_data) < min_audio_length:
+            return
+        
+        await self._transcribe_audio_data(audio_data, is_final=False)
+    
+    async def _transcribe_audio_data(self, audio_data: bytes, is_final: bool = True) -> None:
+        """Transcribe audio data with Groq API"""
         wav_bytes = self._audio_frames_to_wav_bytes(audio_data)
         
         try:
@@ -185,10 +212,15 @@ class GroqSTT(BaseSTT):
             
             text = getattr(resp, "text", "")
             if text and text.strip() and self._transcript_callback and not self._cancelled:
+                event_type = SpeechEventType.FINAL if is_final else SpeechEventType.PARTIAL
                 await self._transcript_callback(STTResponse(
-                    event_type=SpeechEventType.FINAL,
+                    event_type=event_type,
                     data=SpeechData(text=text.strip(), language=self.language),
-                    metadata={"model": self.model, "provider": "groq"}
+                    metadata={
+                        "model": self.model, 
+                        "provider": "groq",
+                        "streaming": not is_final
+                    }
                 ))
                 
         except asyncio.CancelledError:

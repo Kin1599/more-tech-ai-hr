@@ -338,6 +338,77 @@ const ApplicationDetailPage = () => {
         </Card>
       )}
 
+      {/* Результаты собеседования */}
+      {application.interviewFeedback && (
+        <Card>
+          <CardHeader>
+            <CardTitle className='text-[20px] font-semibold'>Результаты собеседования</CardTitle>
+            <p className='text-gray-600 text-sm'>
+              Обратная связь по результатам проведенного собеседования
+            </p>
+          </CardHeader>
+          <CardContent className='space-y-6'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+              {/* Сильные стороны */}
+              {application.interviewFeedback.strengths && application.interviewFeedback.strengths.length > 0 && (
+                <div className='bg-green-50 p-4 rounded-lg border border-green-200'>
+                  <div className='flex items-center mb-3'>
+                    <svg className='w-5 h-5 text-green-600 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' />
+                    </svg>
+                    <h4 className='font-bold text-green-700'>Сильные стороны</h4>
+                  </div>
+                  <ul className='space-y-2'>
+                    {application.interviewFeedback.strengths.map((strength, idx) => (
+                      <li key={idx} className='text-sm text-green-800 flex items-start'>
+                        <span className='text-green-600 mr-2'>•</span>
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Области для развития */}
+              {application.interviewFeedback.weaknesses && application.interviewFeedback.weaknesses.length > 0 && (
+                <div className='bg-orange-50 p-4 rounded-lg border border-orange-200'>
+                  <div className='flex items-center mb-3'>
+                    <svg className='w-5 h-5 text-orange-600 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' />
+                    </svg>
+                    <h4 className='font-bold text-orange-700'>Области для развития</h4>
+                  </div>
+                  <ul className='space-y-2'>
+                    {application.interviewFeedback.weaknesses.map((weakness, idx) => (
+                      <li key={idx} className='text-sm text-orange-800 flex items-start'>
+                        <span className='text-orange-600 mr-2'>•</span>
+                        {weakness}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
+            {/* Информация о результатах */}
+            <div className='mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200'>
+              <div className='flex items-start gap-3'>
+                <svg className='w-5 h-5 text-blue-600 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
+                  <path fillRule='evenodd' d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z' clipRule='evenodd' />
+                </svg>
+                <div>
+                  <h5 className='font-medium text-blue-800 mb-1'>Информация о результатах собеседования</h5>
+                  <p className='text-sm text-blue-700'>
+                    Эта обратная связь сформирована на основе проведенного собеседования с использованием системы искусственного интеллекта. 
+                    Используйте эти рекомендации для дальнейшего профессионального развития.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Кнопки действий */}
       <div className='flex gap-4 justify-center flex-wrap'>
         {application.status === 'rejected' ? (

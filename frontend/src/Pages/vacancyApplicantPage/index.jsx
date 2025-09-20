@@ -194,9 +194,9 @@ const VacancyApplicantPage = () => {
             interview
               ? `
             <div class="section">
-              <h2>Результаты интервью</h2>
-              ${interview.summary ? `<p><strong>Общая информация:</strong> ${interview.summary}</p>` : ''}
-              ${interview.verdict ? `<p><strong>Вердикт:</strong> ${getVerdictText(interview.verdict)}</p>` : ''}
+              <h2>Итоговый результат собеседования</h2>
+              ${interview.verdict ? `<p><strong>Итоговое решение:</strong> ${getVerdictText(interview.verdict)}</p>` : ''}
+              ${interview.summary ? `<p><strong>Краткое резюме:</strong> ${interview.summary}</p>` : ''}
               ${
                 interview.strengths && interview.strengths.length > 0
                   ? `
@@ -213,7 +213,7 @@ const VacancyApplicantPage = () => {
                 interview.weaknesses && interview.weaknesses.length > 0
                   ? `
                 <div>
-                  <strong>Слабые стороны:</strong>
+                  <strong>Области для развития:</strong>
                   <ul>
                     ${interview.weaknesses.map((weakness) => `<li>${weakness}</li>`).join('')}
                   </ul>
@@ -222,6 +222,18 @@ const VacancyApplicantPage = () => {
                   : ''
               }
               ${interview.recommendations ? `<p><strong>Рекомендации:</strong> ${interview.recommendations}</p>` : ''}
+              ${
+                interview.risk_notes && interview.risk_notes.length > 0
+                  ? `
+                <div>
+                  <strong>Заметки о рисках:</strong>
+                  <ul>
+                    ${interview.risk_notes.map((risk) => `<li>${risk}</li>`).join('')}
+                  </ul>
+                </div>
+              `
+                  : ''
+              }
             </div>
           `
               : ''
@@ -428,15 +440,14 @@ const VacancyApplicantPage = () => {
             </Card>
           </div>
         )}
-        {interview && applicant?.status !== 'interview' && (
-          <div className='space-y-4'>
+        <div className='space-y-4'>
             <Card>
               <CardHeader
                 className='cursor-pointer hover:bg-gray-50 transition-colors duration-200'
                 onClick={() => setIsInterviewExpanded(!isInterviewExpanded)}
               >
                 <div className='flex items-center justify-between'>
-                  <CardTitle className='text-[18px]'>Результаты интервью</CardTitle>
+                  <CardTitle className='text-[18px]'>Итоговый результат собеседования</CardTitle>
                   <div
                     className={`transform transition-transform duration-200 ${isInterviewExpanded ? 'rotate-180' : 'rotate-0'}`}
                   >
@@ -452,41 +463,55 @@ const VacancyApplicantPage = () => {
                 }`}
               >
                 <CardContent className='space-y-6 pt-0'>
-                  {/* Общая информация */}
-                  {(interview.summary || interview.verdict) && (
-                    <div className='space-y-3'>
-                      {interview.summary && (
-                        <div>
-                          <div className='font-bold text-gray-700 mb-2'>Краткое резюме:</div>
-                          <p className='text-[14px] text-gray-600 leading-relaxed'>{interview.summary}</p>
-                        </div>
+                  {/* Итоговый вердикт - выделяем его особо */}
+                  {interview.verdict && interview.verdict !== 'no_hire' ? (
+                    <div className='bg-gray-50 p-4 rounded-lg border-2 border-gray-200'>
+                      <div className='flex items-center justify-between mb-3'>
+                        <h3 className='text-lg font-bold text-gray-800'>Итоговое решение</h3>
+                        <Badge className={`px-4 py-2 text-base font-semibold ${getVerdictColor(interview.verdict)}`}>
+                          {getVerdictText(interview.verdict)}
+                        </Badge>
+                      </div>
+                      {interview.summary && interview.summary !== "Интервью ещё не проведено" && (
+                        <p className='text-[14px] text-gray-700 leading-relaxed'>{interview.summary}</p>
                       )}
-                      {interview.verdict && (
-                        <div>
-                          <div className='font-bold text-gray-700 mb-2'>Вердикт:</div>
-                          <Badge className={`px-3 py-1 text-sm font-medium ${getVerdictColor(interview.verdict)}`}>
-                            {getVerdictText(interview.verdict)}
-                          </Badge>
-                        </div>
-                      )}
+                    </div>
+                  ) : (
+                    <div className='bg-yellow-50 p-4 rounded-lg border-2 border-yellow-200'>
+                      <div className='flex items-center mb-3'>
+                        <svg className='w-6 h-6 text-yellow-600 mr-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
+                        </svg>
+                        <h3 className='text-lg font-bold text-yellow-800'>Ожидание собеседования</h3>
+                      </div>
+                      <p className='text-[14px] text-yellow-700 leading-relaxed'>
+                        Собеседование ещё не проведено. Результаты будут доступны после завершения интервью.
+                      </p>
                     </div>
                   )}
 
-                  {/* Разделитель если есть общая информация и оценка */}
-                  {(interview.summary || interview.verdict) &&
+                  {/* Разделитель */}
+                  {interview.verdict && interview.verdict !== 'no_hire' &&
                     (interview.strengths?.length > 0 || interview.weaknesses?.length > 0) && <Separator />}
 
-                  {/* Оценка кандидата */}
-                  {(interview.strengths?.length > 0 || interview.weaknesses?.length > 0) && (
+                  {/* Детальная оценка кандидата */}
+                  {interview.verdict && interview.verdict !== 'no_hire' && 
+                   (interview.strengths?.length > 0 || interview.weaknesses?.length > 0) && (
                     <div className='space-y-4'>
-                      <h4 className='text-[16px] font-semibold'>Оценка кандидата</h4>
-                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                      <h4 className='text-[16px] font-semibold text-gray-800'>Детальная оценка</h4>
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                         {interview.strengths && interview.strengths.length > 0 && (
-                          <div>
-                            <div className='font-bold text-green-600 mb-2'>Сильные стороны:</div>
-                            <ul className='list-disc list-inside space-y-1'>
+                          <div className='bg-green-50 p-4 rounded-lg border border-green-200'>
+                            <div className='flex items-center mb-3'>
+                              <svg className='w-5 h-5 text-green-600 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' />
+                              </svg>
+                              <div className='font-bold text-green-700'>Сильные стороны</div>
+                            </div>
+                            <ul className='space-y-2'>
                               {interview.strengths.map((strength, idx) => (
-                                <li key={idx} className='text-[14px]'>
+                                <li key={idx} className='text-[14px] text-green-800 flex items-start'>
+                                  <span className='text-green-600 mr-2'>•</span>
                                   {strength}
                                 </li>
                               ))}
@@ -494,11 +519,17 @@ const VacancyApplicantPage = () => {
                           </div>
                         )}
                         {interview.weaknesses && interview.weaknesses.length > 0 && (
-                          <div>
-                            <div className='font-bold text-red-600 mb-2'>Слабые стороны:</div>
-                            <ul className='list-disc list-inside space-y-1'>
+                          <div className='bg-red-50 p-4 rounded-lg border border-red-200'>
+                            <div className='flex items-center mb-3'>
+                              <svg className='w-5 h-5 text-red-600 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z' />
+                              </svg>
+                              <div className='font-bold text-red-700'>Области для развития</div>
+                            </div>
+                            <ul className='space-y-2'>
                               {interview.weaknesses.map((weakness, idx) => (
-                                <li key={idx} className='text-[14px]'>
+                                <li key={idx} className='text-[14px] text-red-800 flex items-start'>
+                                  <span className='text-red-600 mr-2'>•</span>
                                   {weakness}
                                 </li>
                               ))}
@@ -509,27 +540,40 @@ const VacancyApplicantPage = () => {
                     </div>
                   )}
 
-                  {/* Разделитель если есть оценка и дополнительная информация */}
-                  {(interview.strengths?.length > 0 || interview.weaknesses?.length > 0) &&
+                  {/* Разделитель */}
+                  {interview.verdict && interview.verdict !== 'no_hire' &&
+                    (interview.strengths?.length > 0 || interview.weaknesses?.length > 0) &&
                     (interview.recommendations || interview.risk_notes?.length > 0) && <Separator />}
 
-                  {/* Дополнительная информация */}
-                  {(interview.recommendations || interview.risk_notes?.length > 0) && (
+                  {/* Рекомендации и дополнительные заметки */}
+                  {interview.verdict && interview.verdict !== 'no_hire' && 
+                   (interview.recommendations || interview.risk_notes?.length > 0) && (
                     <div className='space-y-4'>
-                      <h4 className='text-[16px] font-semibold'>Дополнительная информация</h4>
+                      <h4 className='text-[16px] font-semibold text-gray-800'>Рекомендации и заметки</h4>
                       <div className='space-y-4'>
                         {interview.recommendations && (
-                          <div>
-                            <div className='font-bold text-blue-600 mb-2'>Рекомендации:</div>
-                            <p className='text-[14px] text-gray-600 leading-relaxed'>{interview.recommendations}</p>
+                          <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
+                            <div className='flex items-center mb-3'>
+                              <svg className='w-5 h-5 text-blue-600 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' />
+                              </svg>
+                              <div className='font-bold text-blue-700'>Рекомендации</div>
+                            </div>
+                            <p className='text-[14px] text-blue-800 leading-relaxed'>{interview.recommendations}</p>
                           </div>
                         )}
                         {interview.risk_notes && interview.risk_notes.length > 0 && (
-                          <div>
-                            <div className='font-bold text-orange-600 mb-2'>Заметки о рисках:</div>
-                            <ul className='list-disc list-inside space-y-1'>
+                          <div className='bg-orange-50 p-4 rounded-lg border border-orange-200'>
+                            <div className='flex items-center mb-3'>
+                              <svg className='w-5 h-5 text-orange-600 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z' />
+                              </svg>
+                              <div className='font-bold text-orange-700'>Заметки о рисках</div>
+                            </div>
+                            <ul className='space-y-2'>
                               {interview.risk_notes.map((risk, idx) => (
-                                <li key={idx} className='text-[14px]'>
+                                <li key={idx} className='text-[14px] text-orange-800 flex items-start'>
+                                  <span className='text-orange-600 mr-2'>•</span>
                                   {risk}
                                 </li>
                               ))}
@@ -543,7 +587,6 @@ const VacancyApplicantPage = () => {
               </div>
             </Card>
           </div>
-        )}
       </div>
     </div>
   );

@@ -81,6 +81,10 @@ class LLMModelAdapter(BaseModelAdapter):
         elif provider == "cohere":
             return self._create_cohere_llm()
         
+        # Специализированные русскоязычные модели
+        elif provider == "t_tech":
+            return self._create_t_tech_llm()
+        
         # Локальные провайдеры
         elif provider == "local_oollama":
             return self._create_oollama_llm()
@@ -244,6 +248,39 @@ class LLMModelAdapter(BaseModelAdapter):
             )
         except ImportError:
             raise ModelCreationError("Cohere dependencies not available")
+    
+    def _create_t_tech_llm(self) -> Any:
+        """Создать T-tech T-pro LLM."""
+        try:
+            from .t_pro_llm import TProLLM, TProLLMWithVLLM
+            
+            model_name = self.config.get("model_name", "t-tech/T-pro-it-1.0")
+            use_vllm = self.config.get("use_vllm", False)
+            
+            if use_vllm:
+                return TProLLMWithVLLM(
+                    model_name=model_name,
+                    max_model_len=self.config.get("max_model_len", 8192),
+                    temperature=self.config.get("temperature", 0.7),
+                    top_p=self.config.get("top_p", 0.8),
+                    top_k=self.config.get("top_k", 70),
+                    repetition_penalty=self.config.get("repetition_penalty", 1.05)
+                )
+            else:
+                return TProLLM(
+                    model_name=model_name,
+                    device=self.config.get("device", "auto"),
+                    torch_dtype=self.config.get("torch_dtype", "auto"),
+                    max_new_tokens=self.config.get("max_tokens", 512),
+                    temperature=self.config.get("temperature", 0.7),
+                    top_p=self.config.get("top_p", 0.8),
+                    top_k=self.config.get("top_k", 70),
+                    repetition_penalty=self.config.get("repetition_penalty", 1.05),
+                    cache_dir=self.config.get("cache_dir"),
+                    trust_remote_code=self.config.get("trust_remote_code", True)
+                )
+        except ImportError:
+            raise ModelCreationError("T-tech T-pro dependencies not available")
     
     def _create_vllm_llm(self) -> Any:
         """Создать vLLM локальную модель."""
@@ -677,6 +714,77 @@ class VisionModelAdapter(BaseModelAdapter):
         """Создать Vision модель."""
         provider = self.config.get("provider")
         
+        # Проверяем, нужна ли потоковая версия
+        enable_streaming = self.config.get("enable_streaming", False)
+        
+        if enable_streaming:
+            return self._create_streaming_vision(provider)
+        
+        if provider == "google_gemini":
+            return self._create_gemini_vision()
+        elif provider == "openai_vision":
+            return self._create_openai_vision()
+        elif provider == "anthropic_vision":
+            return self._create_anthropic_vision()
+        elif provider == "azure_vision":
+            return self._create_azure_vision()
+        elif provider == "local_llava":
+            return self._create_llava_vision()
+        elif provider == "local_cogvlm":
+            return self._create_cogvlm_vision()
+        elif provider == "local_blip2":
+            return self._create_blip2_vision()
+        elif provider == "local_instructblip":
+            return self._create_instructblip_vision()
+        elif provider == "local_minigpt4":
+            return self._create_minigpt4_vision()
+        elif provider == "local_qwen_vl":
+            return self._create_qwen_vl_vision()
+        elif provider == "local_internvl":
+            return self._create_internvl_vision()
+        elif provider == "local_moondream":
+            return self._create_moondream_vision()
+        elif provider == "local_bakllava":
+            return self._create_bakllava_vision()
+        elif provider == "custom_endpoint":
+            return self._create_custom_vision()
+        else:
+            raise ModelCreationError(f"Unsupported Vision provider: {provider}")
+    
+    def _create_streaming_vision(self, provider: str) -> Any:
+        """Создать потоковую Vision модель"""
+        try:
+            from .streaming_vlm import StreamingVLMFactory
+            
+            # Подготавливаем конфигурацию для потокового VLM
+            streaming_config = self.config.copy()
+            streaming_config["provider"] = provider
+            
+            # Добавляем API ключ если нужно
+            if provider in ["groq", "openai"] and "api_key_name" in self.config:
+                import os
+                api_key_name = self.config["api_key_name"]
+                streaming_config["api_key"] = os.getenv(api_key_name)
+            
+            streaming_vlm = StreamingVLMFactory.create_streaming_vlm(streaming_config)
+            
+            if streaming_vlm:
+                # Создаем адаптер для совместимости
+                from .streaming_vlm import StreamingVLMAdapter
+                return StreamingVLMAdapter(streaming_vlm)
+            else:
+                # Fallback к обычной модели
+                return self._create_regular_vision(provider)
+                
+        except ImportError as e:
+            logger.warning(f"Streaming VLM not available: {e}, falling back to regular VLM")
+            return self._create_regular_vision(provider)
+        except Exception as e:
+            logger.error(f"Error creating streaming VLM: {e}, falling back to regular VLM")
+            return self._create_regular_vision(provider)
+    
+    def _create_regular_vision(self, provider: str) -> Any:
+        """Создать обычную Vision модель (fallback)"""
         if provider == "google_gemini":
             return self._create_gemini_vision()
         elif provider == "openai_vision":

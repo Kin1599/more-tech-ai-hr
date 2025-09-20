@@ -2,7 +2,7 @@ import os
 from typing import List, Optional
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy import desc, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ...models.models import (
     ApplicantProfile,
@@ -13,8 +13,9 @@ from ...models.models import (
     Vacancy,
     HRProfile,
     Meeting,
+    Interview,
 )
-from .schemas import JobApplicationListItem, JobApplicationDetail, HRBrief, InterviewLinkResponse, JobApplicationStatus, CVFeedback
+from .schemas import JobApplicationListItem, JobApplicationDetail, HRBrief, InterviewLinkResponse, JobApplicationStatus, CVFeedback, InterviewFeedback
 from .helpers import _vacancy_to_response
 from .utils import _generate_join_token, evaluate_resume_background
 
@@ -89,6 +90,9 @@ def get_job_application(db: Session, user_id: int, vacancy_id: int) -> JobApplic
     # Находим отклик
     application = (
         db.query(JobApplication)
+        .options(
+            joinedload(JobApplication.interviews)
+        )
         .filter_by(applicant_id=applicant_profile.id, vacancy_id=vacancy_id)
         .first()
     )
@@ -142,6 +146,21 @@ def get_job_application(db: Session, user_id: int, vacancy_id: int) -> JobApplic
                 for eval in cv_evaluations
             ]
 
+    # Получаем результаты собеседования (только сильные и слабые стороны для кандидата)
+    interview_feedback = None
+    if application.interviews:
+        latest_interview = application.interviews[-1]
+        interview_feedback = InterviewFeedback(
+            strengths=latest_interview.strengths or ["Не оценено"],
+            weaknesses=latest_interview.weaknesses or ["Не оценено"]
+        )
+    else:
+        # Создаем заглушку для интервью, если данных нет
+        interview_feedback = InterviewFeedback(
+            strengths=["Не оценено"],
+            weaknesses=["Не оценено"]
+        )
+
     return JobApplicationDetail(
         applicationId=application.id,
         name=vacancy.name or "",
@@ -152,6 +171,7 @@ def get_job_application(db: Session, user_id: int, vacancy_id: int) -> JobApplic
         interviewLink=meeting.meetLink if meeting else None,
         interviewRecommendation=meeting.hrContact if meeting else None,
         cvFeedback=cv_feedback,
+        interviewFeedback=interview_feedback,
     )
 
 

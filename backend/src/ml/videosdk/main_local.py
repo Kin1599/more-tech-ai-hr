@@ -929,17 +929,39 @@ class LangChainGroqChatbot:
         return answer
 
     def ask_stream(self, question: str) -> Generator[str, None, None]:
-        """Stream answer tokens; updates history after completion.
+        """Stream answer tokens with improved performance; updates history after completion.
 
         Yields incremental text chunks (may be empty for some events).
         """
         messages = self._build_messages(question)
         assembled = []
-        for chunk in self._llm.stream(messages):  # type: ignore
-            text = getattr(chunk, "content", None)
-            if text:
-                assembled.append(text)
-                yield text
+        
+        try:
+            # Используем потоковое получение с оптимизацией
+            for chunk in self._llm.stream(messages):  # type: ignore
+                text = getattr(chunk, "content", None)
+                if text:
+                    assembled.append(text)
+                    yield text
+                    
+                # Проверяем на завершение интервью во время стрима
+                current_text = "".join(assembled)
+                if self._end_marker in current_text:
+                    # Найдем маркер и обрежем текст
+                    marker_pos = current_text.find(self._end_marker)
+                    if marker_pos != -1:
+                        final_text = current_text[:marker_pos].strip()
+                        # Очистим буфер и вернем финальный текст
+                        assembled = [final_text]
+                        yield final_text[len("".join(assembled[:-1])):] if len(assembled) > 1 else final_text
+                        break
+                        
+        except Exception as e:
+            # В случае ошибки возвращаем сообщение об ошибке
+            error_msg = f"Ошибка потокового получения: {str(e)}"
+            assembled.append(error_msg)
+            yield error_msg
+            
         # Store compiled answer in history
         full_answer = "".join(assembled)
         self._history.append(HumanMessage(content=question))

@@ -5,7 +5,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
 from .helpers import _apply_mapped_to_vacancy, _vacancy_to_response
-from ...models.models import HRProfile, User, Vacancy, JobApplication
+from ...models.models import HRProfile, User, Vacancy, JobApplication, Interview
 from .utils import parse_vacancy_docx, to_decimal, vacancy_to_txt
 from .schemas import ApplicantDetailResponse, CVEvaluation, InterviewDetail, InterviewVerdictEnum, VacancyDetailResponse, VacancyDetailApplicant
 from ...ml.resume_similarity import check_all_applications_similarity
@@ -173,7 +173,8 @@ def get_applicant_detail(db: Session, applicant_id: int, vacancy_id: int):
         db.query(JobApplication)
         .options(
             joinedload(JobApplication.cv_evaluations),
-            joinedload(JobApplication.applicant_profile)
+            joinedload(JobApplication.applicant_profile),
+            joinedload(JobApplication.interviews)
         )
         .filter(JobApplication.applicant_id == applicant_id, JobApplication.vacancy_id == vacancy_id)
         .first()
@@ -191,17 +192,32 @@ def get_applicant_detail(db: Session, applicant_id: int, vacancy_id: int):
         for eval in job_application.cv_evaluations
     ]
 
-    interview = InterviewDetail(
-        summary="Интервью ещё не проведено",
-        strengths=["Не оценено"],
-        weaknesses=["Не оценено"],
-        recommendations="Нет рекомендаций",
-        verdict=InterviewVerdictEnum.no_hire,
-        risk_notes=["Интервью не проводилось"]
-    )
+    # Получаем реальные данные интервью из базы данных
+    interview = None
+    if job_application.interviews:
+        # Берем последнее интервью
+        latest_interview = job_application.interviews[-1]
+        interview = InterviewDetail(
+            summary=latest_interview.feedback_json or "Интервью проведено",
+            strengths=latest_interview.strengths or ["Не оценено"],
+            weaknesses=latest_interview.weaknesses or ["Не оценено"],
+            recommendations=latest_interview.feedback_json or "Нет рекомендаций",
+            verdict=latest_interview.verdict or InterviewVerdictEnum.no_hire,
+            risk_notes=["Интервью проведено"] if latest_interview.verdict else ["Интервью не проводилось"]
+        )
+    else:
+        # Создаем заглушку для интервью, если данных нет
+        interview = InterviewDetail(
+            summary="Интервью ещё не проведено",
+            strengths=["Не оценено"],
+            weaknesses=["Не оценено"],
+            recommendations="Нет рекомендаций",
+            verdict=InterviewVerdictEnum.no_hire,
+            risk_notes=["Интервью не проводилось"]
+        )
 
     return ApplicantDetailResponse(
         status=job_application.status,
         cv=cv_evaluations,
-        interview=interview if job_application.status in ["interview", "waitResult", "approved"] else None
+        interview=interview
     )

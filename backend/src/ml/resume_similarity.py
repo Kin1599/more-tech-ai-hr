@@ -38,6 +38,7 @@ class ResumeEmbeddingModel:
         # Создаем директорию для кеша, если она не существует
         os.makedirs(self.cache_dir, exist_ok=True)
         
+ 
         if SENTENCE_TRANSFORMERS_AVAILABLE:
             try:
                 self.model = SentenceTransformer(model_name)
@@ -45,6 +46,7 @@ class ResumeEmbeddingModel:
             except Exception as e:
                 print(f"Error loading sentence-transformers model: {e}")
                 self.model = None
+        print(f"SentenceTransformer model loading disabled for faster startup")
         
     def _clean_text(self, text: str) -> str:
         """Очистка и нормализация текста."""

@@ -1,17 +1,18 @@
 """Add AI models configuration tables
 
 Revision ID: add_ai_models_tables
-Revises: previous_revision_id
+Revises: ea52454e6a30
 Create Date: 2025-01-01 12:00:00.000000
 
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from typing import Union
 
 # revision identifiers, used by Alembic.
 revision = 'add_ai_models_tables'
-down_revision = 'previous_revision_id'  # Замените на актуальный ID предыдущей миграции
+down_revision: Union[str, None] = 'ea52454e6a30'
 branch_labels = None
 depends_on = None
 

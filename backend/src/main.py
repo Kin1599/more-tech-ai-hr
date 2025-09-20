@@ -24,7 +24,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="API",
-    root_path="/api",
+    root_path="/api"
     lifespan=ml_lifespan_manager
 )
 

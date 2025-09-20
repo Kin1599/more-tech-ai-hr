@@ -178,7 +178,8 @@ class InterviewAgent(Agent):
             language="ru",
             max_questions=max_questions,
             end_marker="__END_INTERVIEW__",
-            include_end_marker_instruction=True
+            include_end_marker_instruction=True,
+            ai_hr_instructions=self.ai_hr_instructions
         )
         
         # Инициализируем Screen Analysis Tool для Vision анализа
@@ -202,6 +203,32 @@ class InterviewAgent(Agent):
         except Exception as e:
             logger.error(f"Ошибка инициализации Face Tracker: {e}")
             self.face_tracker = None
+        
+        # Инициализируем Avatar Video Generator для AI аватара
+        try:
+            from .avatar_video_generator import create_avatar_generator, create_avatar_video_track
+            avatar_config = self.db_config.get("avatar_config", {})
+            self.avatar_generator = create_avatar_generator(avatar_config)
+            self.avatar_video_track = None  # Будет создан при необходимости
+            logger.info("Avatar Video Generator инициализирован")
+        except Exception as e:
+            logger.error(f"Ошибка инициализации Avatar Generator: {e}")
+            self.avatar_generator = None
+            self.avatar_video_track = None
+        
+        # Инициализируем Soft Skills Analyzer для анализа поведенческих паттернов
+        try:
+            from .soft_skills_analyzer import create_soft_skills_analyzer
+            vacancy_requirements = {
+                "technical_skills": competencies or [],
+                "soft_skills": ["коммуникабельность", "лидерство", "адаптивность", "критическое мышление"],
+                "experience": [f"опыт работы {self.experience_required} лет"] if self.experience_required else []
+            }
+            self.soft_skills_analyzer = create_soft_skills_analyzer(vacancy_requirements)
+            logger.info("Soft Skills Analyzer инициализирован")
+        except Exception as e:
+            logger.error(f"Ошибка инициализации Soft Skills Analyzer: {e}")
+            self.soft_skills_analyzer = None
 
         # Инициализируем базовый агент
         super().__init__(instructions=system_prompt)
@@ -307,6 +334,10 @@ class InterviewAgent(Agent):
             face_tracking_data = self.get_face_tracking_stats()
             behavioral_insights = self.get_behavioral_insights()
             
+            # Получаем данные soft skills анализа
+            soft_skills_analysis = self.get_soft_skills_analysis()
+            vacancy_match_summary = self.get_vacancy_match_summary()
+            
             # Обогащаем результаты дополнительной информацией
             enhanced_results = {
                 **interview_results,
@@ -331,7 +362,21 @@ class InterviewAgent(Agent):
                     "attention_ratio": face_tracking_data.get("stats", {}).get("attention_ratio"),
                     "distraction_frequency": face_tracking_data.get("stats", {}).get("distraction_frequency"),
                     "overall_engagement": behavioral_insights.get("summary", {}).get("overall_engagement")
-                } if face_tracking_data.get("available") else None
+                } if face_tracking_data.get("available") else None,
+                
+                # Soft skills анализ
+                "soft_skills_analysis": soft_skills_analysis.get("analysis") if soft_skills_analysis.get("available") else None,
+                "vacancy_match_summary": vacancy_match_summary.get("summary") if vacancy_match_summary.get("available") else None,
+                "comprehensive_evaluation": {
+                    "technical_match": soft_skills_analysis.get("analysis", {}).get("technical_match_percentage"),
+                    "communication_match": soft_skills_analysis.get("analysis", {}).get("communication_match_percentage"),
+                    "experience_match": soft_skills_analysis.get("analysis", {}).get("experience_match_percentage"),
+                    "overall_match": soft_skills_analysis.get("analysis", {}).get("overall_match_percentage"),
+                    "communication_score": soft_skills_analysis.get("analysis", {}).get("communication_score"),
+                    "critical_thinking_score": soft_skills_analysis.get("analysis", {}).get("critical_thinking_score"),
+                    "teamwork_score": soft_skills_analysis.get("analysis", {}).get("teamwork_score"),
+                    "adaptability_score": soft_skills_analysis.get("analysis", {}).get("adaptability_score")
+                } if soft_skills_analysis.get("available") else None
             }
             
             # Используем функцию из interview_configs для сохранения
@@ -551,6 +596,267 @@ class InterviewAgent(Agent):
             logger.error(f"Ошибка анализа поведенческих инсайтов: {e}")
             return {"available": False, "error": str(e)}
     
+    def start_avatar_video_stream(self):
+        """Запуск видеопотока AI аватара."""
+        if not self.avatar_generator:
+            logger.warning("Avatar generator не инициализирован")
+            return False
+        
+        try:
+            from .avatar_video_generator import create_avatar_video_track
+            
+            # Создаем video track для аватара
+            self.avatar_video_track = create_avatar_video_track(self.avatar_generator)
+            
+            # Добавляем в meeting
+            if hasattr(self, 'session') and hasattr(self.session, 'meeting'):
+                self.session.meeting.add_custom_video_track(track=self.avatar_video_track)
+                logger.info("Avatar video track добавлен в meeting")
+                return True
+            else:
+                logger.warning("Не удалось добавить avatar video track")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Ошибка запуска avatar video stream: {e}")
+            return False
+    
+    def stop_avatar_video_stream(self):
+        """Остановка видеопотока AI аватара."""
+        try:
+            if self.avatar_video_track and hasattr(self, 'session') and hasattr(self.session, 'meeting'):
+                # Удаляем video track из meeting
+                self.session.meeting.remove_custom_video_track(track=self.avatar_video_track)
+                self.avatar_video_track = None
+                logger.info("Avatar video track удален из meeting")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Ошибка остановки avatar video stream: {e}")
+            return False
+    
+    def update_avatar_speech(self, is_speaking: bool, intensity: float = 0.0, audio_data: Optional[bytes] = None):
+        """Обновление данных речи для анимации аватара."""
+        if self.avatar_video_track:
+            self.avatar_video_track.update_speech(is_speaking, intensity, audio_data)
+            logger.debug(f"Avatar speech updated: speaking={is_speaking}, intensity={intensity}")
+    
+    def update_avatar_face_tracking(self, face_data: Dict[str, Any]):
+        """Обновление данных face tracking для движения аватара."""
+        if self.avatar_video_track:
+            self.avatar_video_track.update_face_tracking(face_data)
+            logger.debug("Avatar face tracking updated")
+    
+    def get_avatar_status(self) -> Dict[str, Any]:
+        """Получение статуса аватара."""
+        if not self.avatar_generator:
+            return {
+                "available": False,
+                "message": "Avatar generator не инициализирован"
+            }
+        
+        try:
+            current_state = self.avatar_generator.current_state
+            
+            return {
+                "available": True,
+                "avatar_type": self.avatar_generator.config.avatar_type,
+                "is_active": self.avatar_video_track is not None,
+                "current_state": {
+                    "is_talking": current_state.is_talking,
+                    "emotion": current_state.emotion,
+                    "mouth_openness": current_state.mouth_openness,
+                    "eye_blink": current_state.eye_blink,
+                    "head_movement": current_state.head_movement,
+                    "speech_intensity": current_state.speech_intensity
+                },
+                "config": {
+                    "resolution": self.avatar_generator.config.resolution,
+                    "fps": self.avatar_generator.config.fps,
+                    "face_id": self.avatar_generator.config.face_id
+                }
+            }
+        except Exception as e:
+            logger.error(f"Ошибка получения статуса аватара: {e}")
+            return {"available": False, "error": str(e)}
+    
+    def configure_avatar(self, config: Dict[str, Any]) -> bool:
+        """Настройка параметров аватара."""
+        if not self.avatar_generator:
+            return False
+        
+        try:
+            # Обновляем конфигурацию
+            if "talking_sensitivity" in config:
+                self.avatar_generator.config.talking_sensitivity = config["talking_sensitivity"]
+            
+            if "emotion_detection" in config:
+                self.avatar_generator.config.emotion_detection = config["emotion_detection"]
+            
+            if "head_movement_enabled" in config:
+                self.avatar_generator.config.head_movement_enabled = config["head_movement_enabled"]
+            
+            if "eye_blink_enabled" in config:
+                self.avatar_generator.config.eye_blink_enabled = config["eye_blink_enabled"]
+            
+            if "avatar_scale" in config:
+                self.avatar_generator.config.avatar_scale = config["avatar_scale"]
+            
+            logger.info("Конфигурация аватара обновлена")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Ошибка настройки аватара: {e}")
+            return False
+    
+    def analyze_response(self, question_id: str, response_text: str, response_duration: float, pause_data: Optional[Dict[str, Any]] = None):
+        """Анализ ответа кандидата с помощью Soft Skills Analyzer."""
+        if not self.soft_skills_analyzer:
+            logger.warning("Soft Skills Analyzer не инициализирован")
+            return None
+        
+        try:
+            # Анализируем ответ
+            response_metrics = self.soft_skills_analyzer.analyze_response(
+                question_id=question_id,
+                response_text=response_text,
+                response_duration=response_duration,
+                pause_data=pause_data
+            )
+            
+            # Анализируем соответствие вакансии
+            vacancy_matches = self.soft_skills_analyzer.analyze_vacancy_match(
+                response_text=response_text,
+                question_context=question_id
+            )
+            
+            logger.debug(f"Response analyzed: {question_id}, confidence={response_metrics.confidence_score:.2f}")
+            
+            return {
+                "response_metrics": response_metrics,
+                "vacancy_matches": vacancy_matches
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка анализа ответа: {e}")
+            return None
+    
+    def get_soft_skills_analysis(self) -> Dict[str, Any]:
+        """Получить комплексный анализ soft skills."""
+        if not self.soft_skills_analyzer:
+            return {
+                "available": False,
+                "error": "Soft Skills Analyzer не инициализирован"
+            }
+        
+        try:
+            analysis = self.soft_skills_analyzer.generate_soft_skills_analysis()
+            
+            return {
+                "available": True,
+                "analysis": {
+                    "total_responses": analysis.total_responses,
+                    "avg_response_duration": analysis.avg_response_duration,
+                    "pause_frequency": analysis.pause_frequency,
+                    
+                    # Общие метрики
+                    "avg_confidence": analysis.avg_confidence,
+                    "avg_coherence": analysis.avg_coherence,
+                    "avg_clarity": analysis.avg_clarity,
+                    "avg_specificity": analysis.avg_specificity,
+                    
+                    # Эмоциональные паттерны
+                    "dominant_emotional_tone": analysis.dominant_emotional_tone,
+                    "stress_frequency": analysis.stress_frequency,
+                    "confidence_trend": analysis.confidence_trend,
+                    
+                    # Коммуникативные навыки
+                    "communication_score": analysis.communication_score,
+                    "critical_thinking_score": analysis.critical_thinking_score,
+                    "teamwork_score": analysis.teamwork_score,
+                    "adaptability_score": analysis.adaptability_score,
+                    
+                    # Соответствие вакансии
+                    "technical_match_percentage": analysis.technical_match_percentage,
+                    "communication_match_percentage": analysis.communication_match_percentage,
+                    "experience_match_percentage": analysis.experience_match_percentage,
+                    "overall_match_percentage": analysis.overall_match_percentage,
+                    
+                    # Проблемные паттерны
+                    "contradictions": analysis.contradictions,
+                    "red_flags": analysis.red_flags,
+                    "template_responses": analysis.template_responses,
+                    "evasion_patterns": analysis.evasion_patterns
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка получения анализа soft skills: {e}")
+            return {"available": False, "error": str(e)}
+    
+    def get_vacancy_match_summary(self) -> Dict[str, Any]:
+        """Получить сводку соответствия вакансии."""
+        if not self.soft_skills_analyzer:
+            return {"available": False, "error": "Soft Skills Analyzer не инициализирован"}
+        
+        try:
+            matches = self.soft_skills_analyzer.vacancy_matches
+            
+            # Группируем по типам соответствия
+            confirmed_matches = [m for m in matches if m.match_type == "confirmed"]
+            unconfirmed_matches = [m for m in matches if m.match_type == "unconfirmed"]
+            contradictions = [m for m in matches if m.match_type == "contradiction"]
+            red_flags = [m for m in matches if m.match_type == "red_flag"]
+            
+            return {
+                "available": True,
+                "summary": {
+                    "total_requirements": len(matches),
+                    "confirmed_matches": len(confirmed_matches),
+                    "unconfirmed_matches": len(unconfirmed_matches),
+                    "contradictions": len(contradictions),
+                    "red_flags": len(red_flags),
+                    
+                    "match_percentage": (len(confirmed_matches) / len(matches) * 100) if matches else 0,
+                    
+                    "confirmed_details": [
+                        {
+                            "requirement": m.requirement,
+                            "confidence": m.confidence,
+                            "evidence": m.evidence
+                        } for m in confirmed_matches
+                    ],
+                    
+                    "unconfirmed_details": [
+                        {
+                            "requirement": m.requirement,
+                            "confidence": m.confidence,
+                            "gaps": m.gaps
+                        } for m in unconfirmed_matches
+                    ],
+                    
+                    "contradictions_details": [
+                        {
+                            "requirement": m.requirement,
+                            "confidence": m.confidence,
+                            "gaps": m.gaps
+                        } for m in contradictions
+                    ],
+                    
+                    "red_flags_details": [
+                        {
+                            "requirement": m.requirement,
+                            "confidence": m.confidence,
+                            "gaps": m.gaps
+                        } for m in red_flags
+                    ]
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка получения сводки соответствия: {e}")
+            return {"available": False, "error": str(e)}
+    
     async def on_exit(self):
         """Завершение интервью"""
         if not self.chatbot.is_finished():
@@ -658,6 +964,31 @@ class InterviewAgent(Agent):
             base_status.update({
                 "face_tracking": {"available": False, "message": "Face tracking не инициализирован"},
                 "behavioral_insights": {"available": False, "message": "Face tracking недоступен"}
+            })
+        
+        # Добавляем данные аватара
+        if hasattr(self, 'avatar_generator') and self.avatar_generator:
+            avatar_status = self.get_avatar_status()
+            base_status.update({
+                "avatar": avatar_status
+            })
+        else:
+            base_status.update({
+                "avatar": {"available": False, "message": "Avatar generator не инициализирован"}
+            })
+        
+        # Добавляем данные soft skills анализа
+        if hasattr(self, 'soft_skills_analyzer') and self.soft_skills_analyzer:
+            soft_skills_status = self.get_soft_skills_analysis()
+            vacancy_match_status = self.get_vacancy_match_summary()
+            base_status.update({
+                "soft_skills_analysis": soft_skills_status,
+                "vacancy_match": vacancy_match_status
+            })
+        else:
+            base_status.update({
+                "soft_skills_analysis": {"available": False, "message": "Soft Skills Analyzer не инициализирован"},
+                "vacancy_match": {"available": False, "message": "Soft Skills Analyzer недоступен"}
             })
         
         return base_status

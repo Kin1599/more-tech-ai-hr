@@ -1,0 +1,35 @@
+FROM python:3.11-slim
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Установка рабочей директории
+WORKDIR /app
+
+# Копирование requirements
+COPY requirements.txt .
+
+# Установка Python зависимостей
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копирование кода приложения
+COPY . .
+
+# Создание директории для статических файлов
+RUN mkdir -p /app/staticfiles
+
+# Создание пользователя для безопасности
+RUN adduser --disabled-password --gecos '' adminuser
+RUN chown -R adminuser:adminuser /app
+USER adminuser
+
+# Сбор статических файлов
+RUN python manage.py collectstatic --noinput
+
+# Открытие порта
+EXPOSE 8000
+
+# Команда запуска будет выполнена в docker-compose
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

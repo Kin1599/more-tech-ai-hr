@@ -215,7 +215,7 @@ const VacancyPage = () => {
       </div>
 
       <div className='flex justify-between items-center mb-[10px]'>
-        {/* Закомментированная форма редактирования названия */}
+        {/* тированная форма редактирования названия */}
         {/* {isEditing ? (
           <Input
             value={editedVacancy.name}

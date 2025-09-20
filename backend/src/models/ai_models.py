@@ -32,6 +32,9 @@ class ModelProviderEnum(enum.Enum):
     REPLICATE = "replicate"
     COHERE = "cohere"
     
+    # Специализированные русскоязычные провайдеры
+    T_TECH = "t_tech"
+    
     # Локальные провайдеры
     LOCAL_Oollama = "local_oollama"
     LOCAL_WHISPER = "local_whisper"
