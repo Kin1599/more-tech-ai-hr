@@ -1,81 +1,80 @@
-# VTB More Tech 2025
+# AI HR Assistant — [VTB MORE.Tech 2025](https://moretech.vtb.ru/) (1st Place, ~$3,500 prize)
+
+**AI-powered hiring platform** that automates resume screening, conducts adaptive voice interviews, and generates structured candidate evaluations. Built during the VTB MORE.Tech hackathon (1,900 participants, 450 teams).
+
+📰 **Press:** [Official VTB MORE.Tech Recap on Habr](https://habr.com/ru/companies/vtb/news/951020/)
+
+---
 
 *MISIS x MISIS*
 
 Team Members:
 
-1. **Дмитрий Коноплянников** - Backend, DevOps
-2. **Виктория Гайлитис** - Backend
-3. **Дарья Короленко** - Design
-4. **Ильдар Ишбулатов** - Frontend
-5. **Кирилл Рыжичкин** - ML Engineer
+1. **Dmitry Konoplyannikov** — Backend, DevOps
+2. **Victoria Gailitis** — Backend
+3. **Darya Korolenko** — Design
+4. **Ildar Ishbulatov** — Frontend
+5. **Kirill Ryzhichkin** — ML Engineer
 
-Презентация: [тык]()
+## AI HR Challenge
 
-Веб-сервис: [тык]()
+The goal was to build an AI-powered HR avatar with the following capabilities:
 
-API - [тык]()
+1. Resume analysis and candidate screening based on job requirements.
+2. Structured interviews with dynamic question adaptation.
+3. Quantitative scoring of candidate-to-role fit.
+4. Generating reasoned hiring decisions with transparent selection logic.
 
-## Кейс AI HR
-
-Цель данного кейса — реализовать собственного HR-аватара, который будет иметь следующий функционал, разделенный на этапы:
-
-1. Анализ резюме и отбор кандидатов в соответствии с требованиями вакансии.
-2. Проведение структурированных интервью с динамической адаптацией вопросов.
-3. Количественное оценивание соответствия кандидата требованиям вакансии.
-4. Генерация обоснованных решений с прозрачной логикой отбора.
-
-## Блок-схема всего решения:
+## Architecture:
 
 ![scheme](scheme.jpg)
 
-## Проблема
+## The Problem
 
-- HR в среднем тратят от 4 до 16 часов на ручной скрининг резюме для одной вакансии
-- 78% кандидатов не получают обратной связи после интервью, из-за чего они остаются в неведении по поводу своих сильных и слабых сторон
-- Низкая эффективность найма обходится бизнесу в миллионы
+- HR teams spend 4–16 hours on average manually screening resumes for a single role
+- 78% of candidates never receive feedback after interviews, leaving them unaware of their strengths and weaknesses
+- Inefficient hiring costs businesses millions annually
 
-## AI чать
+## AI Features
 
-### Резюме:
-- Оценка по критериям (0–100)
-- Feedback → сильные/слабые стороны
+### Resume:
+- Criteria-based scoring (0–100)
+- Feedback → strengths / weaknesses
 
-### Собеседование:
-- STT (распознавание речи)
-- TTS (озвучка вопросов)
-- Чатбот, который адаптируется под вакансию и резюме
-- Саммари, strengths/weaknesses
-- Verdict: отказ / требуется дополнительное рассмотрение рекрутером / проход на следующий этап
+### Interview:
+- STT (speech-to-text recognition)
+- TTS (question voiceover)
+- Chatbot that adapts to the job description and resume
+- Summary with strengths / weaknesses
+- Verdict: reject / needs additional recruiter review / advance to next stage
 
-### Стек:
+### Tech Stack:
 
-- Backend: Python, Postgress, FastApi
+- Backend: Python, PostgreSQL, FastAPI
 - Frontend: React, Zustand, Tailwind
-- ML: Python, transformers, langchain
-- DevOps: Docker, nginx
+- ML: Python, Transformers, LangChain
+- DevOps: Docker, Nginx
 
-### Наши особенности
+### Key Differentiators
 
-- Использование open source решений
-- Комплексное решение с собственной HR платформой
-- Возможность кастомизации используемых STT, TTS и LLM моделей
-- Мультиязычность
-- Возможность загрузки файлов нескольких форматов
+- Fully open-source stack — no vendor lock-in
+- Complete HR platform, not just a chatbot
+- Customizable STT, TTS, and LLM models
+- Multilingual support
+- Multiple file format uploads
 
-## Сборка
+## Run Locally
 
-### Локалькая сборка:
+### Local setup:
 
-1. Установить postgresql, docker
-2. Открыть docker desktop
-3. Заполнить все необходимые поля в .env, их нужно создавать по шаблону .env.sample и в том же месте, где находится этот файл
-4. В терминале написать docker-compose up --build -d
+1. Install PostgreSQL and Docker
+2. Open Docker Desktop
+3. Copy `.env.sample` to `.env` and fill in the required values
+4. Run `docker-compose up --build -d`
 
-### Сборка на сервере:
+### Server setup:
 
-1. На сервер установить и настроить nodeJS, npx, nginx, postgresql, docker, git
-2. С помощью git клонируем нашу репозиторию
-3. Заполнить все необходимые поля в .env, их нужно создавать по шаблону .env.sample и в том же месте, где находится этот файл
-4. И запускаем наш docker compose up --build -d
-
+1. Install and configure Node.js, npx, Nginx, PostgreSQL, Docker, and Git on the server
+2. Clone the repository
+3. Copy `.env.sample` to `.env` and fill in the required values
+4. Run `docker-compose up --build -d`
